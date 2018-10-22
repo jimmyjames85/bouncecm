@@ -13,6 +13,6 @@ PUT /bounce_rules/{id} Update bounce rule
 
 Send POST/PUT as json
 Example:
-    {"id":603,"response_code":"916","enhanced_code":"916","regex":"916","priority":1,"description":"Email was received","bounce_action":"return"}
+    {response_code":"916","enhanced_code":"916","regex":"916","priority":1,"description":"Email was received","bounce_action":"return"}
 
 
