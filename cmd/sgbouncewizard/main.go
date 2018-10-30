@@ -1,14 +1,15 @@
 package main
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+
 	"./db"
 	"./models"
-	"encoding/json"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 )
 
 func main() {
@@ -24,18 +25,18 @@ func main() {
 	})
 
 	r.Route("/user", func(r chi.Router) {
-		r.Post("/", CheckUser)	
+		r.Post("/", CheckUser)
 	})
 
 	r.Route("/bounce_rules", func(r chi.Router) {
-		r.Get("/", ListRules);
+		r.Get("/", ListRules)
 	})
 
 	http.ListenAndServe(":3000", r)
 
 }
 
-
+// ListRules - wrapper to grab all rules
 func ListRules(w http.ResponseWriter, r *http.Request) {
 	rules, err := db.ListRules()
 
@@ -74,6 +75,7 @@ func verifyPassword(hashed string, plain []byte) bool {
 	return true
 }
 
+// CheckUser - wrapper function to auth user
 func CheckUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(200)
@@ -92,9 +94,9 @@ func CheckUser(w http.ResponseWriter, r *http.Request) {
 
 	result := models.UserObject{}
 	if verifyPassword(user[0].Hash, []byte(c.Password)) {
-		result.Id = user[0].Id;
-		result.First_name = user[0].First_name
-		result.Last_name = user[0].Last_name
+		result.ID = user[0].ID
+		result.FirstName = user[0].FirstName
+		result.LastName = user[0].LastName
 		result.Role = user[0].Role
 	}
 
@@ -107,4 +109,3 @@ func CheckUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(data)
 }
-
