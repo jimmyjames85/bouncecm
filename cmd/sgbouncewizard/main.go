@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"./db"
-	"./models"
+	"github.com/jimmyjames85/internal/db"
+	"github.com/jimmyjames85/internal/models"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"golang.org/x/crypto/bcrypt"
