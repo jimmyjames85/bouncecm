@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	"../models"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/jimmyjames85/bouncecm/internal/models"
+	"github.com/go-sql-driver/mysql"
 )
+
+var _ = mysql.Open
 
 // ListRules - Function to pull all rules from db
 func ListRules() (models.RulesObject, error) {
