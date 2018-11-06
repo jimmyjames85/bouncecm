@@ -4,6 +4,7 @@ database:
   command: mysqld --user=root
   volumes:
     - ./drop_rules.sql:/docker-entrypoint-initdb.d/drop_rules.sql
+    - ./user.sql:/docker-entrypoint-initdb.d/user.sql
   ports:
     - "3306:3306"
   environment:

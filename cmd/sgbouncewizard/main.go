@@ -5,14 +5,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 
+	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/jimmyjames85/bouncecm/internal/db"
+	"github.com/jimmyjames85/bouncecm/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type BounceRule struct {
@@ -40,7 +45,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/bounce_rules", func(r chi.Router) {
-		r.Get("/", listRules)
+		r.Get("/", ListRules)
 		r.Post("/", createRule)
 
 		r.Route("/{bounce_id}", func(r chi.Router) {
@@ -50,6 +55,11 @@ func main() {
 			r.Put("/", updateRule)
 		})
 	})
+
+	r.Route("/user", func(r chi.Router) {
+		r.Post("/", CheckUser)
+	})
+
 	http.ListenAndServe(":3000", r)
 }
 
@@ -107,46 +117,31 @@ func updateRule(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func listRules(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	if r.Method == "OPTIONS" {
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization") // You can add more headers here if needed
-	} else {
-		var rules []BounceRule
+// ListRules - wrapper to grab all rules
+func ListRules(w http.ResponseWriter, r *http.Request) {
+	rules, err := db.ListRules()
 
-		db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
+	data, err := json.Marshal(rules)
 
-		checkErr(err)
-
-		rows, err := db.Query("SELECT * FROM bounce_rule")
-
-		checkErr(err)
-
-		for rows.Next() {
-			var br BounceRule
-
-			err = rows.Scan(&br.Id, &br.Response_code, &br.Enhanced_code, &br.Regex, &br.Priority, &br.Description, &br.Bounce_action)
-			checkErr(err)
-			rules = append(rules, br)
-		}
-
-		defer rows.Close()
-		db.Close()
-
-		rulesObject := RulesObject{Rules: rules, NumRules: len(rules)}
-
-		data, err := json.Marshal(rulesObject)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(200)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }
 
-// Database Calls
+func generateHash(pwd []byte) string {
+	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+	if err != nil {
+		log.Println(err)
+		return "error"
+	}
+	return string(hash)
+}
 
 func createRuleDB(rule *BounceRule) []byte {
 	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
@@ -210,7 +205,7 @@ func updateRuleDB(ruleDifferences map[string]interface{}, prevRule *BounceRule) 
 
 func checkErr(err error) {
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }
 
@@ -260,4 +255,51 @@ func createUpdateQuery(ruleDifferences map[string]interface{}, prevRule *BounceR
 	}
 	queryString += (" WHERE id=" + strconv.Itoa(prevRule.Id))
 	return queryString
+}
+
+func verifyPassword(hashed string, plain []byte) bool {
+	byteHash := []byte(hashed)
+
+	err := bcrypt.CompareHashAndPassword(byteHash, plain)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
+}
+
+// CheckUser - wrapper function to auth user
+func CheckUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+
+	c := models.UserCredentials{}
+
+	err := json.NewDecoder(r.Body).Decode(&c)
+
+	user, err := db.GetUserByEmail(c.Email)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	result := models.UserObject{}
+	if verifyPassword(user[0].Hash, []byte(c.Password)) {
+		result.ID = user[0].ID
+		result.FirstName = user[0].FirstName
+		result.LastName = user[0].LastName
+		result.Role = user[0].Role
+	}
+
+	data, err := json.Marshal(result)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(data)
 }
