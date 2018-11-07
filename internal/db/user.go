@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	// Blank import required for mysql driver
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
-	"github.com/go-sql-driver/mysql"
 )
-
-var _ = mysql.Open
 
 // GetUserByEmail - Function to pull user from db
 func GetUserByEmail(email string) ([]*models.User, error) {
