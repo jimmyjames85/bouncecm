@@ -1,14 +1,13 @@
 package main
-
 import (
 	"encoding/json"
 	"log"
 	"net/http"
 
-	"github.com/jimmyjames85/bouncecm/internal/db"
-	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/jimmyjames85/bouncecm/internal/db"
+	"github.com/jimmyjames85/bouncecm/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -32,8 +31,28 @@ func main() {
 		r.Get("/", ListRules)
 	})
 
+	r.Route("/changelogs", func(r chi.Router) {
+		r.Get("/", GetChangelog)
+	})
+
 	http.ListenAndServe(":3000", r)
 
+}
+
+func GetChangelog(w http.ResponseWriter, r *http.Request) {
+	rules, err := db.Changelog()
+
+	data, err := json.Marshal(rules)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }
 
 // ListRules - wrapper to grab all rules
