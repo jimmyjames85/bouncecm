@@ -13,14 +13,10 @@ import (
 )
 
 // ListRules - Function to pull all rules from db
-func ListRules() (models.RulesObject, error) {
+func (c *Client) ListRules() (models.RulesObject, error) {
 	rules := []models.BounceRule{}
 
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
-
-	checkErr(err)
-
-	rows, err := db.Query("SELECT * FROM bounce_rule")
+	rows, err := c.Conn.Query("SELECT * FROM bounce_rule")
 
 	checkErr(err)
 
@@ -34,19 +30,14 @@ func ListRules() (models.RulesObject, error) {
 
 	defer rows.Close()
 
-	db.Close()
-
 	rulesObject := models.RulesObject{Rules: rules, NumRules: len(rules)}
 
 	return rulesObject, nil
 }
 
-
-func getRuleDB(id string) (*models.BounceRule, error) {
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
+func (c *Client) GetRuleDB(id string) (*models.BounceRule, error) {
 	var bounce_rule *models.BounceRule
-	checkErr(err)
-	rows, err := db.Query("SELECT * FROM bounce_rule WHERE id=" + id)
+	rows, err := c.Conn.Query("SELECT * FROM bounce_rule WHERE id=" + id)
 	for rows.Next() {
 		var br models.BounceRule
 		err = rows.Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &br.Description, &br.BounceAction)
@@ -56,7 +47,6 @@ func getRuleDB(id string) (*models.BounceRule, error) {
 	}
 	checkErr(err)
 	defer rows.Close()
-	defer db.Close()
 	return nil, err
 }
 func deleteRuleDB(id int) (*models.BounceRule, error) {
