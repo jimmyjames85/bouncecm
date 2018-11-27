@@ -13,3 +13,5 @@ database:
     MYSQL_PASSWORD: "tiet"
     MYSQL_ROOT_PASSWORD: "root"
     MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    CM_DB_DRIVER: "mysql"
+    CM_DB_DATASOURCE: "root:root@tcp(127.0.0.1:3306)/drop_rules"

@@ -8,10 +8,19 @@ import (
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
+	"github.com/kelseyhightower/envconfig"
 )
+
+type Configuration struct {
+	Driver     string
+	Datasource string
+}
 
 // GetUserByEmail - Function to pull user from db
 func GetUserByEmail(email string) ([]*models.User, error) {
+	var c Configuration
+	err := envconfig.Process("cm", &c)
+	fmt.Println(c)
 	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
 	fmt.Println(email)
 	rows, err := db.Query("SELECT * FROM user where email = ?", email)

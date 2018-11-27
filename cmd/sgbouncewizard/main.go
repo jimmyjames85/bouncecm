@@ -5,12 +5,18 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jimmyjames85/bouncecm/internal/db"
-	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/jimmyjames85/bouncecm/internal/db"
+	"github.com/jimmyjames85/bouncecm/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type Configuration struct {
+	DB      string
+	DBRoute string
+	Port    int
+}
 
 func main() {
 	r := chi.NewRouter()
@@ -19,6 +25,8 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	err := env.LoadConfig("config.json", "CM", &c)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))

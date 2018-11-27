@@ -1,0 +1,5 @@
+{
+  "database": "mysql",
+  "datasource": "root:root@tcp(127.0.0.1:3306)/drop_rules",
+  "port": 3000
+}
