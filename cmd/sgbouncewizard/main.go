@@ -27,17 +27,82 @@ func main() {
 		r.Post("/", CheckUser)
 	})
 
-	r.Route("/bounce_rules", func(r chi.Router) {
-		r.Get("/", ListRules)
-	})
-
 	r.Route("/changelogs", func(r chi.Router) {
 		r.Get("/", GetChangelog)
 	})
 
+	r.Route("/bounce_rules", func(r chi.Router) {
+		r.Get("/", ListRules)
+		r.Post("/", createRule)
+
+
+		r.Route("/{bounce_id}", func(r chi.Router) {
+			r.Use(RuleContext)
+			r.Get("/", getRule)
+			r.Delete("/", deleteRule)
+			r.Put("/", updateRule)
+		})
+	})
+
+
 	http.ListenAndServe(":3000", r)
 
 }
+
+func RuleContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var rule *models.BounceRule
+		var err error
+		if bounce_id := chi.URLParam(r, "bounce_id"); bounce_id != "" {
+			rule, err = getRuleDB(bounce_id)
+			checkErr(err)
+		}
+		ctx := context.WithValue(r.Context(), "rule", rule)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func getRule(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	rule := r.Context().Value("rule").(*models.BounceRule)
+	data, err := json.Marshal(rule)
+	checkErr(err)
+	w.Write(data)  
+}
+
+func deleteRule(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	toDelete := r.Context().Value("rule").(*models.BounceRule)
+	db.deleteRuleDB(toDelete.ID)
+	data, err := json.Marshal(toDelete)
+	checkErr(err)
+	w.Write(data)
+}
+
+
+func createRule(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	decoder := json.NewDecoder(r.Body)
+	var rule models.BounceRule
+	err := decoder.Decode(&rule)
+	checkErr(err)
+	data := createRuleDB(&rule)
+	w.Write(data)
+}
+
+func updateRule(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	prevRule := *r.Context().Value("rule").(*models.BounceRule)
+	decoder := json.NewDecoder(r.Body)
+	var newRule models.BounceRule
+	err := decoder.Decode(&newRule)
+	checkErr(err)
+	data, err := json.Marshal(newRule)
+	ruleDifferences := getRuleDifferences(&prevRule, &newRule)
+	updateRuleDB(ruleDifferences, &prevRule)
+	w.Write(data)
+}
+
 
 func GetChangelog(w http.ResponseWriter, r *http.Request) {
 	rules, err := db.Changelog()
@@ -128,3 +193,11 @@ func CheckUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(data)
 }
+
+	func checkErr(err error) {
+		if err != nil {
+			log.Println(err)
+		}
+	}
+	
+
