@@ -2,21 +2,35 @@ package db
 
 import (
 	"database/sql"
+	"github.com/jimmyjames85/bouncecm/internal/config"
+	"fmt"
+	"github.com/go-sql-driver/mysql"
 )
 
 type Client struct {
 	Conn *sql.DB
 }
 
-type Configuration struct {
-}
+// NewDB ... 
+func NewDB(c config.Configuration) (*Client, error) {
+	fmt.Println(c)
+	dbConf := &mysql.Config{
+		User:                 c.DBUser,
+		Passwd:               c.DBPass,
+		Addr:                 fmt.Sprintf("%s:%d", c.DBHost, c.DBPort),
+		Net:                  "tcp",
+		ReadTimeout:          c.DBReadTimeout,
+		WriteTimeout:         c.DBWriteTimeout,
+		AllowNativePasswords: true,
+		DBName:				  c.DBName,
+	}
 
-// NewDB ...
-func NewDB(c *Configuration) (*Client, error) {
+	fmt.Println(dbConf.FormatDSN())
+
 	// user c to tweak your mysql setting
 	// create a connection
 	// return Client ref with conn
-	conn, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
+	conn, err := sql.Open("mysql", dbConf.FormatDSN())
 	if err != nil {
 		return nil, err
 	}

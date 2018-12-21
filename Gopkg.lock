@@ -14,6 +14,12 @@
   version = "v1.4.1"
 
 [[projects]]
+  name = "github.com/kelseyhightower/envconfig"
+  packages = ["."]
+  revision = "f611eb38b3875cc3bd991ca91c51d06446afa14c"
+  version = "v1.3.0"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["bcrypt","blowfish"]
@@ -28,6 +34,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8821f98673ad9207076102fd88351b5d20b28f07287c7e053a7db58019754bbd"
+  inputs-digest = "8d0f1a518be6448acc45133e7e61c906c6e1e4e618726ef92c5db314fafaaf26"
   solver-name = "gps-cdcl"
   solver-version = 1

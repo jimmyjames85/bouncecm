@@ -1,7 +1,6 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
@@ -9,13 +8,10 @@ import (
 )
 
 // Changelog - Function to pull all rules from db
-func Changelog() (models.ChangelogTable, error) {
+func  (c *Client) Changelog() (models.ChangelogTable, error) {
 	rules := []models.ChangelogEntry{}
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
 
-	checkErr(err)
-
-	rows, err := db.Query("SELECT * FROM changelog ")
+	rows, err := c.Conn.Query("SELECT * FROM changelog ")
 
 
 	checkErr(err)
@@ -28,11 +24,6 @@ func Changelog() (models.ChangelogTable, error) {
 		checkErr(err)
 		rules = append(rules, br)
 	}
-
-
-	defer rows.Close()
-
-	db.Close()
 
 	ChangelogTable := models.ChangelogTable{Rules: rules, NumRules: len(rules)}
 

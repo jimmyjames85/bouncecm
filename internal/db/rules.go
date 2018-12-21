@@ -1,11 +1,11 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
+	"encoding/json"
 
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
@@ -28,11 +28,21 @@ func (c *Client) ListRules() (models.RulesObject, error) {
 		rules = append(rules, br)
 	}
 
-	defer rows.Close()
-
 	rulesObject := models.RulesObject{Rules: rules, NumRules: len(rules)}
 
 	return rulesObject, nil
+}
+
+func (c *Client) CreateRuleDB(rule *models.BounceRule) []byte {
+	stmt, err := c.Conn.Prepare("INSERT INTO bounce_rule(id,response_code,enhanced_code,regex,priority,description,bounce_action) VALUES(?,?,?,?,?,?,?)")
+	checkErr(err)
+
+	_, err = stmt.Query(rule.ID, rule.ResponseCode, rule.EnhancedCode, rule.Regex, rule.Priority, rule.Description, rule.BounceAction)
+	checkErr(err)
+
+	data, err := json.Marshal(rule)
+	checkErr(err)
+	return data
 }
 
 func (c *Client) GetRuleDB(id string) (*models.BounceRule, error) {
@@ -46,28 +56,24 @@ func (c *Client) GetRuleDB(id string) (*models.BounceRule, error) {
 		return bounce_rule, nil
 	}
 	checkErr(err)
-	defer rows.Close()
 	return nil, err
-}
-func deleteRuleDB(id int) (*models.BounceRule, error) {
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
-	checkErr(err)
-	query := fmt.Sprintf("%s%d", "DELETE FROM bounce_rule WHERE id=", id)
-	_, err = db.Query(query)
-	checkErr(err)
-	defer db.Close()
-	return nil, err
-}
-func updateRuleDB(ruleDifferences map[string]interface{}, prevRule *models.BounceRule) {
-	queryString := createUpdateQuery(ruleDifferences, prevRule)
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
-	checkErr(err)
-	_, err = db.Query(queryString)
-	checkErr(err)
-	db.Close()
 }
 
-func getRuleDifferences(prevRule *models.BounceRule, newRule *models.BounceRule) map[string]interface{} {
+func (c *Client) DeleteRuleDB(id int) {
+	query := fmt.Sprintf("%s%d", "DELETE FROM bounce_rule WHERE id=", id)
+	_, err := c.Conn.Query(query)
+	checkErr(err)
+}
+
+func (c *Client) UpdateRuleDB(ruleDifferences map[string]interface{}, prevRule *models.BounceRule) {
+	queryString := createUpdateQuery(ruleDifferences, prevRule)
+	_, err :=  c.Conn.Query(queryString)
+	checkErr(err)
+}
+
+// getRuleDifferences this and the next functions don't require the the DB client to function do they need
+// need the (c *Client)?
+func GetRuleDifferences(prevRule *models.BounceRule, newRule *models.BounceRule) (map[string]interface{}) {
 	ruleChange := make(map[string]interface{})
 	prevRuleValue := reflect.ValueOf(prevRule).Elem()
 	newRuleValue := reflect.ValueOf(newRule).Elem()
@@ -88,7 +94,7 @@ func getRuleDifferences(prevRule *models.BounceRule, newRule *models.BounceRule)
 	return ruleChange
 }
 
-func createUpdateQuery(ruleDifferences map[string]interface{}, prevRule *models.BounceRule) string {
+func  createUpdateQuery(ruleDifferences map[string]interface{}, prevRule *models.BounceRule) string {
 	var queryString string = "UPDATE bounce_rule SET "
 	innerCount := 1
 	for k, v := range ruleDifferences {
