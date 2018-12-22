@@ -18,7 +18,7 @@ func main() {
 	srv, error := sgbouncewizard.NewServer(cfg)
 
 	if error != nil {
-		fmt.Println("ERROR STARTING SERVER")
+		log.Fatalf("ERROR STARTING SERVER")
 	}
 	srv.Serve()
 }

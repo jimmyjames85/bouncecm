@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"time"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -23,6 +22,6 @@ type Configuration struct {
 // LoadConfig loads environment variables with the prefix
 func LoadConfig() (Configuration, error) {
 	cfg := Configuration{}
-	err := envconfig.Process(strings.ToUpper("sup"), &cfg)
+	err := envconfig.Process("BOUNCECM", &cfg)
 	return cfg, err
 }

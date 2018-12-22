@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/jimmyjames85/bouncecm/internal/config"
 	"fmt"
+	"log"
 	"github.com/go-sql-driver/mysql"
 )
 
@@ -25,7 +26,7 @@ func NewDB(c config.Configuration) (*Client, error) {
 		DBName:				  c.DBName,
 	}
 
-	fmt.Println(dbConf.FormatDSN())
+	log.Println(dbConf.FormatDSN())
 
 	// user c to tweak your mysql setting
 	// create a connection

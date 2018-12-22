@@ -37,7 +37,7 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 		if bounce_id := chi.URLParam(r, "bounce_id"); bounce_id != "" {
 			rule, err = srv.DBClient.GetRuleDB(bounce_id)
 			if err != nil {
-				// do something to handle this error
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
 		ctx := context.WithValue(r.Context(), "rule", rule)
@@ -106,8 +106,9 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 // ListRules - wrapper to grab all rules
 func  (srv *Server) ListRules(w http.ResponseWriter, r *http.Request) {
 	rules, err := srv.DBClient.ListRules()
+	// fmt.Println(rules)
 
-	data, err := json.Marshal(rules)
+	data, err := json.Marshal(&rules)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -124,7 +125,11 @@ func (srv *Server) getRule(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	rule := r.Context().Value("rule").(*models.BounceRule)
 	data, err := json.Marshal(rule)
-	checkErr(err)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Write(data)  
 }
 
@@ -133,7 +138,12 @@ func (srv *Server) deleteRule(w http.ResponseWriter, r *http.Request) {
 	toDelete := r.Context().Value("rule").(*models.BounceRule)
     srv.DBClient.DeleteRuleDB(toDelete.ID)
 	data, err := json.Marshal(toDelete)
-	checkErr(err)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Write(data)
 }
 
@@ -142,9 +152,15 @@ func (srv *Server) createRule(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	decoder := json.NewDecoder(r.Body)
 	var rule models.BounceRule
+	
 	err := decoder.Decode(&rule)
-	checkErr(err)
-	data := srv.DBClient.CreateRuleDB(&rule)
+	
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data, err := srv.DBClient.CreateRuleDB(&rule)
 	w.Write(data)
 }
 
@@ -154,7 +170,13 @@ func (srv *Server) updateRule(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var newRule models.BounceRule
 	err := decoder.Decode(&newRule)
-	checkErr(err)
+
+	if err != nil {
+		fmt.Println("error her?")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	data, err := json.Marshal(newRule)
 	ruleDifferences := db.GetRuleDifferences(&prevRule, &newRule)
 	srv.DBClient.UpdateRuleDB(ruleDifferences, &prevRule)
@@ -165,7 +187,7 @@ func (srv *Server) updateRule(w http.ResponseWriter, r *http.Request) {
 func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 	rules, err := srv.DBClient.Changelog()
 
-	data, err := json.Marshal(rules)
+	data, err := json.Marshal(*rules)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -176,12 +198,6 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
-}
-
-func checkErr(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
 }
 
 func (srv *Server) Serve() {
@@ -219,16 +235,3 @@ func (srv *Server) Serve() {
 	http.ListenAndServe(":3000", r)
 
 }
-
-
-
-
-
-
-
-// func checkErr(err error) {
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-// }
-	
