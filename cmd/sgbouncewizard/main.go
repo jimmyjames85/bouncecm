@@ -1,7 +1,6 @@
 package main
 import (
 	"log"
-	"fmt"
 	"github.com/jimmyjames85/bouncecm/internal/sgbouncewizard"
 	"github.com/jimmyjames85/bouncecm/internal/config"
 
@@ -9,16 +8,17 @@ import (
 
 func main() {
 
-	fmt.Println("the Server has Started")
+	log.Println("the Server has Started")
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Error reading config: %s", err)
+		log.Fatalf("Error reading config", err)
 	}
+	
+	srv, err := sgbouncewizard.NewServer(cfg)
 
-	srv, error := sgbouncewizard.NewServer(cfg)
-
-	if error != nil {
-		log.Fatalf("ERROR STARTING SERVER")
+	if err != nil {
+		log.Fatalf("Error Starting Server:", err)
+		return
 	}
 	srv.Serve()
 }
