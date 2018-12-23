@@ -20,7 +20,7 @@ func main() {
 		log.Fatalf("Error Starting Server:", err)
 		return
 	}
-	srv.Serve()
+	srv.Serve(cfg.APIPort)
 }
 
 

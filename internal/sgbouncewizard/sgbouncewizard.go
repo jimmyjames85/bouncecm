@@ -6,6 +6,7 @@ import (
 	"log"
 	"encoding/json"
 	"strconv"
+	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/jimmyjames85/bouncecm/internal/db"
@@ -243,7 +244,7 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (srv *Server) Serve() {
+func (srv *Server) Serve(Port int) {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -275,6 +276,7 @@ func (srv *Server) Serve() {
 		})
 	})
 
-	http.ListenAndServe(":3000", r)
+	port := fmt.Sprintf(":%d", Port)
+	http.ListenAndServe(port, r)
 
 }
