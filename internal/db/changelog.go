@@ -8,7 +8,7 @@ import (
 )
 
 // Changelog - Function to pull all rules from db
-func  (c *Client) Changelog() (*models.ChangelogTable, error) {
+func  (c *Client) Changelog() (*[]models.ChangelogEntry, error) {
 	rules := []models.ChangelogEntry{}
 
 	rows, err := c.Conn.Query("SELECT * FROM changelog ")
@@ -18,6 +18,8 @@ func  (c *Client) Changelog() (*models.ChangelogTable, error) {
 		log.Println(err)
 		return nil, err;
 	}
+
+	defer rows.Close()
 
 	for rows.Next() {
 		br := models.ChangelogEntry{}
@@ -32,7 +34,10 @@ func  (c *Client) Changelog() (*models.ChangelogTable, error) {
 		rules = append(rules, br)
 	}
 
-	ChangelogTable := models.ChangelogTable{Rules: rules, NumRules: len(rules)}
-
-	return &ChangelogTable, nil
+	err = rows.Err()
+    if err != nil {
+        return nil, err
+	}
+	
+	return &rules, nil
 }

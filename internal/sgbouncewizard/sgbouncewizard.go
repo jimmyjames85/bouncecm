@@ -5,14 +5,15 @@ import (
 	"net/http"
 	"log"
 	"encoding/json"
-	"fmt"
+	"strconv"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/jimmyjames85/bouncecm/internal/db"
 	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/jimmyjames85/bouncecm/internal/config"
-
 	"golang.org/x/crypto/bcrypt"
+	"github.com/pkg/errors"
+
 
 )
 
@@ -26,6 +27,11 @@ func NewServer(c config.Configuration) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = client.Ping()
+
+	if err != nil {
+		return nil, err
+	}
 
 	return &Server{DBClient: client}, nil
 }
@@ -33,11 +39,20 @@ func NewServer(c config.Configuration) (*Server, error) {
 func (srv *Server) RuleContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rule *models.BounceRule
-		var err error
-		if bounce_id := chi.URLParam(r, "bounce_id"); bounce_id != "" {
-			rule, err = srv.DBClient.GetRuleDB(bounce_id)
+
+		bounce_id := chi.URLParam(r, "bounce_id"); 
+		bouncd_idInt, err := strconv.Atoi(bounce_id)
+		
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if bounce_id != "" {
+			rule, err = srv.DBClient.GetSingleRule(bouncd_idInt)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
 			}
 		}
 		ctx := context.WithValue(r.Context(), "rule", rule)
@@ -45,14 +60,15 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 	})
 }
 
-func (srv *Server) generateHash(pwd []byte) string {
+func (srv *Server) generateHash(pwd []byte) (*string, error) {
 	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
 
 	if err != nil {
-		log.Println(err)
+		log.Println(errors.Wrap(err, "generateHash"))
+		return nil, err
 	}
-
-	return string(hash)
+	result := string(hash)
+	return &result, nil
 }
 
 
@@ -70,18 +86,19 @@ func (srv *Server) verifyPassword(hashed string, plain []byte) bool {
 
 // CheckUser - wrapper function to auth user
 func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(200)
-	w.Header().Set("Content-Type", "application/json")
-
 	c := models.UserCredentials{}
 
 	err := json.NewDecoder(r.Body).Decode(&c)
 
-	user, err := db.GetUserByEmail(c.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	user, err := srv.DBClient.GetUserByEmail(c.Email)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -100,13 +117,20 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
 
 // ListRules - wrapper to grab all rules
-func  (srv *Server) ListRules(w http.ResponseWriter, r *http.Request) {
-	rules, err := srv.DBClient.ListRules()
-	// fmt.Println(rules)
+func  (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
+	rules, err := srv.DBClient.GetAllRules()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	data, err := json.Marshal(&rules)
 
@@ -116,40 +140,43 @@ func  (srv *Server) ListRules(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
 
-func (srv *Server) getRule(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
 	rule := r.Context().Value("rule").(*models.BounceRule)
+
 	data, err := json.Marshal(rule)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(data)  
 }
 
-func (srv *Server) deleteRule(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	toDelete := r.Context().Value("rule").(*models.BounceRule)
-    srv.DBClient.DeleteRuleDB(toDelete.ID)
-	data, err := json.Marshal(toDelete)
-
+	err := srv.DBClient.DeleteRule(toDelete.ID)
+	
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Write(data)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
 
-func (srv *Server) createRule(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var rule models.BounceRule
 	
@@ -160,32 +187,48 @@ func (srv *Server) createRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := srv.DBClient.CreateRuleDB(&rule)
-	w.Write(data)
+	err = srv.DBClient.CreateRule(&rule)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
-func (srv *Server) updateRule(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	prevRule := *r.Context().Value("rule").(*models.BounceRule)
+func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var newRule models.BounceRule
 	err := decoder.Decode(&newRule)
 
 	if err != nil {
-		fmt.Println("error her?")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	data, err := json.Marshal(newRule)
-	ruleDifferences := db.GetRuleDifferences(&prevRule, &newRule)
-	srv.DBClient.UpdateRuleDB(ruleDifferences, &prevRule)
-	w.Write(data)
+	srv.DBClient.UpdateRule(&newRule)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
 
 func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 	rules, err := srv.DBClient.Changelog()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	data, err := json.Marshal(*rules)
 
@@ -195,8 +238,8 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
 
@@ -221,14 +264,14 @@ func (srv *Server) Serve() {
 	})
 
 	r.Route("/bounce_rules", func(r chi.Router) {
-		r.Get("/", srv.ListRules)
-		r.Post("/", srv.createRule)
+		r.Get("/", srv.getAllRulesRoute)
+		r.Post("/", srv.createRuleRoute)
 
 		r.Route("/{bounce_id}", func(r chi.Router) {
 			r.Use(srv.RuleContext)
-			r.Get("/", srv.getRule)
-			r.Delete("/", srv.deleteRule)
-			r.Put("/", srv.updateRule)
+			r.Get("/", srv.getRuleRoute)
+			r.Delete("/", srv.deleteRuleRoute)
+			r.Put("/", srv.updateRuleRoute)
 		})
 	})
 

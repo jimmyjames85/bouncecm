@@ -1,175 +1,87 @@
 package db
 
 import (
-	"fmt"
-
+	"database/sql"
 	"log"
-	"strconv"
-
-	"encoding/json"
-
+	"github.com/pkg/errors"
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
 )
 
 // ListRules - Function to pull all rules from db
-func (c *Client) ListRules() (*models.RulesObject, error) {
+func (c *Client) GetAllRules() (*models.RulesObject, error) {
 	rules := []models.BounceRule{}
-
 	rows, err := c.Conn.Query("SELECT * FROM bounce_rule")
 
 	if err != nil {
 		log.Println(err)
-		fmt.Println("FAILEDHERE?")
-
-		return nil, err;
-
+		return nil, err
 	}
+
+	defer rows.Close()
 
 	for rows.Next() {
 		br := models.BounceRule{}
-		var description *string
-		err := rows.Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description , &br.BounceAction)
-		
-		// case when description is null becuase it can be null according to droprules.sql
-		if description == nil {
-			br.Description = ""
+
+		var description sql.NullString
+		err := rows.Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description, &br.BounceAction)
+
+		if description.Valid {
+			br.Description = description.String
 		} else {
-			br.Description = *description
+			br.Description = ""
 		}
-
-
 		if err != nil {
-			log.Println(err)
-			fmt.Println(br)
-
-			return nil, err;
+			log.Println(errors.Wrap(err, "GetAllRules Scanning"))
+			return nil, err
 		}
-
 		rules = append(rules, br)
-		
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Println(errors.Wrap(err, "GetAllRules Row.Err"))
+		return nil, err
 	}
 
 	rulesObject := models.RulesObject{Rules: rules, NumRules: len(rules)}
-
 	return &rulesObject, nil
 }
 
-func (c *Client) CreateRuleDB(rule *models.BounceRule) ([]byte, error) {
-	stmt, err := c.Conn.Prepare("INSERT INTO bounce_rule(response_code,enhanced_code,regex,priority,description,bounce_action) VALUES(?,?,?,?,?,?)")
-	
+func (c *Client) GetSingleRule(id int) (*models.BounceRule, error) {
+	var br models.BounceRule
+	err := c.Conn.QueryRow("SELECT * From bounce_rule WHERE id = ?", id).Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &br.Description, &br.BounceAction)
 	if err != nil {
-		log.Println(err)
-		return nil, err;
+		log.Println(errors.Wrap(err, "GetSingleRule"))
+		return nil, err
 	}
+	return &br, nil
+}
 
-
-	_, err = stmt.Exec(rule.ResponseCode, rule.EnhancedCode, rule.Regex, rule.Priority, rule.Description, rule.BounceAction)
-	
+func (c *Client) CreateRule(rule *models.BounceRule) error {
+	_, err := c.Conn.Exec("INSERT INTO bounce_rule(response_code,enhanced_code,regex,priority,description,bounce_action) VALUES(?,?,?,?,?,?)", rule.ResponseCode, rule.EnhancedCode, rule.Regex, rule.Priority, rule.Description, rule.BounceAction)
 	if err != nil {
-		log.Println(err)
-		return nil, err;
+		log.Println(errors.Wrap(err, "CreateRule"))
+		return err
 	}
+	return nil
+}
 
-	data, err := json.Marshal(rule)
-	
+func (c *Client) UpdateRule(newRule *models.BounceRule) error {
+	_, err := c.Conn.Exec("UPDATE bounce_rule SET id=? , response_code= ? , enhanced_code= ? , regex= ?, priority= ? , description= ?, bounce_action= ? WHERE id= ?", newRule.ID, newRule.ResponseCode, newRule.EnhancedCode, newRule.Regex, newRule.Priority, newRule.Description, newRule.BounceAction, newRule.ID)
 	if err != nil {
-		log.Println(err)
-		return nil, err;
+		log.Println(errors.Wrap(err, "UpdateRule"))
+		return err
 	}
-	return data, nil
+	return nil
 }
 
-func (c *Client) GetRuleDB(id string) (*models.BounceRule, error) {
-	var bounce_rule *models.BounceRule
-	rows, err := c.Conn.Query("SELECT * FROM bounce_rule WHERE id=" + id)
-	for rows.Next() {
-		var br models.BounceRule
-		err = rows.Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &br.Description, &br.BounceAction)
-		if err != nil {
-			log.Println(err)
-			return nil, err;
-		}
-		bounce_rule = &br
-		return bounce_rule, nil
-	}
-	return nil, err
-}
-
-func (c *Client) DeleteRuleDB(id int) (error){
-	query := fmt.Sprintf("%s%d", "DELETE FROM bounce_rule WHERE id=", id)
-	_, err := c.Conn.Query(query)
-
+func (c *Client) DeleteRule(id int) error {
+	_, err := c.Conn.Exec("DELETE FROM bounce_rule WHERE id= ?", id)
 	if err != nil {
-		log.Println(err)
-		return err;
+		log.Println(errors.Wrap(err, "DeleteRule"))
+		return err
 	}
-	return nil;
+	return nil
 }
-
-func (c *Client) UpdateRuleDB(ruleDifferences map[string]interface{}, prevRule *models.BounceRule) error {
-	queryString := createUpdateQuery(ruleDifferences, prevRule)
-	fmt.Println(queryString)
-	_, err :=  c.Conn.Query(queryString)
-	if err != nil {
-		fmt.Println("fails here")
-
-		log.Println(err)
-		return err;
-	}
-	return nil;
-}
-
-// getRuleDifferences this and the next functions don't require the the DB client to function do they need
-// need the (c *Client)?
-func GetRuleDifferences(prevRule *models.BounceRule, newRule *models.BounceRule) (map[string]interface{}) {
-	ruleChange := make(map[string]interface{})
-
-	if (prevRule.ID != newRule.ID){
-		ruleChange["id"] = newRule.ID
-	}
-	if (prevRule.ResponseCode != newRule.ResponseCode){
-		ruleChange["response_code"] = newRule.ResponseCode
-	}
-	if (prevRule.EnhancedCode != newRule.EnhancedCode){
-		ruleChange["enhanced_code"] = newRule.EnhancedCode
-	}
-	if (prevRule.Regex != newRule.Regex){
-		ruleChange["regex"] = newRule.Regex
-	}
-	if (prevRule.Priority != newRule.Priority){
-		ruleChange["priority"] = newRule.Priority
-	}
-	if (prevRule.Description != newRule.Description){
-		ruleChange["description"] = newRule.Description
-	}
-	if (prevRule.BounceAction != newRule.BounceAction){
-		ruleChange["bounce_action"] = newRule.BounceAction
-	}
-	return ruleChange
-}
-
-func  createUpdateQuery(ruleDifferences map[string]interface{}, prevRule *models.BounceRule) string {
-	var queryString string = "UPDATE bounce_rule SET "
-	innerCount := 1
-	for k, v := range ruleDifferences {
-
-		queryString += k + "="
-		switch v.(type) {
-		case string:
-			queryString += ("\"" + v.(string) + "\"")
-			break
-		case int:
-			queryString += ("\"" + strconv.Itoa(v.(int)) + "\"")
-			break
-		}
-		if innerCount < len(ruleDifferences) {
-			queryString += ","
-		}
-		innerCount++
-	}
-	queryString += (" WHERE id=" + strconv.Itoa(prevRule.ID))
-	return queryString
-}
-

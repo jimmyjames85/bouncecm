@@ -14,9 +14,3 @@ type ChangelogEntry struct {
 	Comment      string `json:"comment"`
 	
 }
-
-
-type ChangelogTable struct {
-	Rules    []ChangelogEntry `json:"rules"`
-	NumRules int          `json:"numRules"`
-}

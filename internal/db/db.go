@@ -14,7 +14,6 @@ type Client struct {
 
 // NewDB ... 
 func NewDB(c config.Configuration) (*Client, error) {
-	fmt.Println(c)
 	dbConf := &mysql.Config{
 		User:                 c.DBUser,
 		Passwd:               c.DBPass,
@@ -23,18 +22,20 @@ func NewDB(c config.Configuration) (*Client, error) {
 		ReadTimeout:          c.DBReadTimeout,
 		WriteTimeout:         c.DBWriteTimeout,
 		AllowNativePasswords: true,
-		DBName:				  c.DBName,
+		DBName:            	  c.DBName,
 	}
 
 	log.Println(dbConf.FormatDSN())
 
-	// user c to tweak your mysql setting
-	// create a connection
-	// return Client ref with conn
 	conn, err := sql.Open("mysql", dbConf.FormatDSN())
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{Conn: conn}, nil
+}
+
+// like this?
+func  (c *Client) Ping() (error) {
+	return nil
 }
