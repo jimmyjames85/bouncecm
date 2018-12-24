@@ -14,8 +14,6 @@ import (
 	"github.com/jimmyjames85/bouncecm/internal/config"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/pkg/errors"
-
-
 )
 
 type Server struct {
@@ -26,12 +24,15 @@ type Server struct {
 func NewServer(c config.Configuration) (*Server, error) {
 	client, err := db.NewDB(c)
 	if err != nil {
-		return nil, err
+		log.Println(errors.Wrap(err, "Connecting to Client Failed"))
+		return nil, errors.Wrap(err, "Connecting to Client Failed")
 	}
-	err = client.Ping()
+
+	err = client.Conn.Ping()
 
 	if err != nil {
-		return nil, err
+		log.Println(errors.Wrap(err, "Ping Failed"))
+		return nil, errors.Wrap(err, "Ping Failed")
 	}
 
 	return &Server{DBClient: client}, nil
@@ -45,6 +46,7 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 		bouncd_idInt, err := strconv.Atoi(bounce_id)
 		
 		if err != nil {
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -52,6 +54,7 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 		if bounce_id != "" {
 			rule, err = srv.DBClient.GetSingleRule(bouncd_idInt)
 			if err != nil {
+				log.Println(err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
@@ -92,6 +95,7 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&c)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -99,6 +103,7 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	user, err := srv.DBClient.GetUserByEmail(c.Email)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -114,6 +119,7 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	data, err := json.Marshal(result)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -129,6 +135,7 @@ func  (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	rules, err := srv.DBClient.GetAllRules()
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -136,6 +143,7 @@ func  (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	data, err := json.Marshal(&rules)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -152,6 +160,7 @@ func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
 	data, err := json.Marshal(rule)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -167,6 +176,7 @@ func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	err := srv.DBClient.DeleteRule(toDelete.ID)
 	
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -184,6 +194,7 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&rule)
 	
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -191,6 +202,7 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 	err = srv.DBClient.CreateRule(&rule)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -206,6 +218,7 @@ func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&newRule)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -213,6 +226,7 @@ func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	srv.DBClient.UpdateRule(&newRule)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -227,6 +241,7 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 	rules, err := srv.DBClient.Changelog()
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -234,6 +249,7 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 	data, err := json.Marshal(*rules)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

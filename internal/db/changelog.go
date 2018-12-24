@@ -1,7 +1,8 @@
 package db
 
 import (
-	"log"
+	"github.com/pkg/errors"
+
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
@@ -15,8 +16,7 @@ func  (c *Client) Changelog() (*[]models.ChangelogEntry, error) {
 
 
 	if err != nil {
-		log.Println(err)
-		return nil, err;
+		return nil, errors.Wrap(err, "Query Error")
 	}
 
 	defer rows.Close()
@@ -27,8 +27,7 @@ func  (c *Client) Changelog() (*[]models.ChangelogEntry, error) {
 		err = rows.Scan(&br.ID,  &br.UserID,  &br.Comment,  &br.CreatedAt, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &br.Description, &br.BounceAction)
 		
 		if err != nil {
-			log.Println(err)
-			return nil, err;
+			return nil, errors.Wrap(err, "Changelog Row Scan")
 		}
 
 		rules = append(rules, br)
@@ -36,7 +35,7 @@ func  (c *Client) Changelog() (*[]models.ChangelogEntry, error) {
 
 	err = rows.Err()
     if err != nil {
-        return nil, err
+        return nil, errors.Wrap(err, "Changelog Row Error")
 	}
 	
 	return &rules, nil

@@ -34,8 +34,3 @@ func NewDB(c config.Configuration) (*Client, error) {
 
 	return &Client{Conn: conn}, nil
 }
-
-// like this?
-func  (c *Client) Ping() (error) {
-	return nil
-}
