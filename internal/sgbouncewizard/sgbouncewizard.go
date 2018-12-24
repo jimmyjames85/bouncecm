@@ -55,7 +55,7 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 			rule, err = srv.DBClient.GetSingleRule(bouncd_idInt)
 			if err != nil {
 				log.Println(err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
 		}
@@ -79,12 +79,10 @@ func (srv *Server) generateHash(pwd []byte) (*string, error) {
 func (srv *Server) verifyPassword(hashed string, plain []byte) bool {
 	byteHash := []byte(hashed)
 
-	err := bcrypt.CompareHashAndPassword(byteHash, plain)
-	if err != nil {
-		log.Println(err)
+	comparison := bcrypt.CompareHashAndPassword(byteHash, plain)
+	if comparison != nil {
 		return false
 	}
-
 	return true
 }
 
@@ -104,7 +102,7 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -114,6 +112,10 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 		result.FirstName = user[0].FirstName
 		result.LastName = user[0].LastName
 		result.Role = user[0].Role
+	} else {
+		passError :=  errors.New("verifyPassword Failed")
+		http.Error(w, passError.Error(), http.StatusBadRequest)
+		return
 	}
 
 	data, err := json.Marshal(result)
@@ -136,7 +138,7 @@ func  (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -155,13 +157,20 @@ func  (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
-	rule := r.Context().Value("rule").(*models.BounceRule)
+	rule , ok := r.Context().Value("rule").(*models.BounceRule)
+
+	if !ok {
+		log.Println(ok)
+		paramError :=  errors.New("Route Parameters")
+		http.Error(w, paramError.Error(), http.StatusBadRequest)
+		return
+	}
 
 	data, err := json.Marshal(rule)
 
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -172,12 +181,20 @@ func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
-	toDelete := r.Context().Value("rule").(*models.BounceRule)
+	toDelete, ok := r.Context().Value("rule").(*models.BounceRule)
+
+	if !ok {
+		log.Println(ok)
+		paramError :=  errors.New("Route Parameters")
+		http.Error(w, paramError.Error(), http.StatusBadRequest)
+		return
+	}
+
 	err := srv.DBClient.DeleteRule(toDelete.ID)
 	
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -195,7 +212,7 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 	
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -203,7 +220,7 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -219,15 +236,15 @@ func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	srv.DBClient.UpdateRule(&newRule)
+	err = srv.DBClient.UpdateRule(&newRule)
 
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -242,7 +259,7 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -269,7 +286,7 @@ func (srv *Server) Serve(Port int) {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome"))
+		w.Write([]byte("welcome: Routes \n\n /bounce_rules/{id} - Get Post Put Delete \n\n /bounce_rules - Get \n\n /change_log - Get \n\n /change_log/{id} - Get"))
 	})
 
 	r.Route("/user", func(r chi.Router) {
@@ -293,6 +310,10 @@ func (srv *Server) Serve(Port int) {
 	})
 
 	port := fmt.Sprintf(":%d", Port)
-	http.ListenAndServe(port, r)
+	err := http.ListenAndServe(port, r)
 
+	if err != nil {
+		log.Println(errors.Wrap(err, "ListenaAndServer Failed"))
+		return
+	}
 }
