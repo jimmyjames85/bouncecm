@@ -291,8 +291,6 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 			return
 		}
 
-		fmt.Println(changelog)
-
 		ctx := context.WithValue(r.Context(), "changelog", changelog)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -352,7 +350,6 @@ func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Requ
 	var changelog models.BounceRule
 
 	err := decoder.Decode(&changelog)
-	fmt.Println(changelog)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
