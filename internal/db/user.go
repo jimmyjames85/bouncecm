@@ -1,23 +1,18 @@
 package db
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
-
+	"github.com/pkg/errors"
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
 )
 
 // GetUserByEmail - Function to pull user from db
-func GetUserByEmail(email string) ([]*models.User, error) {
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
-	fmt.Println(email)
-	rows, err := db.Query("SELECT * FROM user where email = ?", email)
+func (c *Client) GetUserByEmail(email string) ([]*models.User, error) {
+	rows, err := c.Conn.Query("SELECT * FROM user where email = ?", email)
 
 	if err != nil {
-		return nil, errors.New("User not found")
+		return nil, errors.Wrap(err, "GetUserByEmail User Not Found")
 	}
 
 	result := []*models.User{}
@@ -28,11 +23,15 @@ func GetUserByEmail(email string) ([]*models.User, error) {
 		err = rows.Scan(&u.ID, &u.FirstName, &u.LastName, &u.Email, &u.Role, &u.Hash, &u.CreatedAt)
 
 		if err != nil {
-			fmt.Println(err)
-			return nil, errors.New("Cannot add to list")
+			return nil, errors.Wrap(err, "GetUserByEmail Cannot add to list")
 		}
 
 		result = append(result, &u)
+	}
+
+	err = rows.Err()
+    if err != nil {
+        return nil, errors.Wrap(err, "GetUserByEmail Row Error")
 	}
 
 	return result, nil
