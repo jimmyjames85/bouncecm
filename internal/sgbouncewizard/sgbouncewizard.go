@@ -69,7 +69,7 @@ func (srv *Server) generateHash(pwd []byte) (string, error) {
 
 	if err != nil {
 		log.Println(errors.Wrap(err, "generateHash"))
-		return "", err
+		return "", errors.Wrap(err,"failed to gen hash")
 	}
 	result := string(hash)
 	return result, nil
