@@ -9,7 +9,7 @@ import (
 )
 
 // Changelog - Function to pull all rules from db
-func  (c *Client) GetAllChangelogEntries() (*[]models.ChangelogEntry, error) {
+func  (c *Client) GetAllChangelogEntries() ([]models.ChangelogEntry, error) {
 	rules := []models.ChangelogEntry{}
 
 	rows, err := c.Conn.Query("SELECT * FROM changelog ")
@@ -38,23 +38,6 @@ func  (c *Client) GetAllChangelogEntries() (*[]models.ChangelogEntry, error) {
         return nil, errors.Wrap(err, "Changelog Row Error")
 	}
 	
-	return &rules, nil
+	return rules, nil
 }
 
-
-// func (c *Client) GetChangeLogEntry(id int) (*models.ChangelogEntry, error) {
-// 	var br models.ChangelogEntry
-// 	err := c.Conn.QueryRow("SELECT * From changelog WHERE id = ?", id).Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &br.Description, &br.BounceAction)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "GetSingleRule")
-// 	}
-// 	return &br, nil
-// }
-
-// func (c *Client) CreateChangeLogEntry(rule *models.ChangelogEntry) error {
-// 	_, err := c.Conn.Exec("INSERT INTO changelog(response_code,enhanced_code,regex,priority,description,bounce_action) VALUES(?,?,?,?,?,?)", rule.ResponseCode, rule.EnhancedCode, rule.Regex, rule.Priority, rule.Description, rule.BounceAction)
-// 	if err != nil {
-// 		return errors.Wrap(err, "CreateRule")
-// 	}
-// 	return nil
-// }

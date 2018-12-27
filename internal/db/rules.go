@@ -9,7 +9,7 @@ import (
 )
 
 // ListRules - Function to pull all rules from db
-func (c *Client) GetAllRules() (*models.RulesObject, error) {
+func (c *Client) GetAllRules() ([]models.BounceRule, error) {
 	rules := []models.BounceRule{}
 	rows, err := c.Conn.Query("SELECT * FROM bounce_rule")
 
@@ -27,9 +27,8 @@ func (c *Client) GetAllRules() (*models.RulesObject, error) {
 
 		if description.Valid {
 			br.Description = description.String
-		} else {
-			br.Description = ""
-		}
+		} 
+
 		if err != nil {
 			return nil, errors.Wrap(err, "GetAllRules Scanning")
 		}
@@ -41,8 +40,7 @@ func (c *Client) GetAllRules() (*models.RulesObject, error) {
 		return nil, errors.Wrap(err, "GetAllRules Row.Err")
 	}
 
-	rulesObject := models.RulesObject{Rules: rules, NumRules: len(rules)}
-	return &rulesObject, nil
+	return rules, nil
 }
 
 func (c *Client) GetSingleRule(id int) (*models.BounceRule, error) {

@@ -51,36 +51,36 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 			return
 		}
 
-		if bounce_id != "" {
-			rule, err = srv.DBClient.GetSingleRule(bouncd_idInt)
-			if err != nil {
-				log.Println(err)
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
-			}
+	
+		rule, err = srv.DBClient.GetSingleRule(bouncd_idInt)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
 		}
+
 		ctx := context.WithValue(r.Context(), "rule", rule)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func (srv *Server) generateHash(pwd []byte) (*string, error) {
+func (srv *Server) generateHash(pwd []byte) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
 
 	if err != nil {
 		log.Println(errors.Wrap(err, "generateHash"))
-		return nil, err
+		return "", err
 	}
 	result := string(hash)
-	return &result, nil
+	return result, nil
 }
 
 
 func (srv *Server) verifyPassword(hashed string, plain []byte) bool {
 	byteHash := []byte(hashed)
 
-	comparison := bcrypt.CompareHashAndPassword(byteHash, plain)
-	if comparison != nil {
+	err := bcrypt.CompareHashAndPassword(byteHash, plain)
+	if err != nil {
 		return false
 	}
 	return true
@@ -160,7 +160,7 @@ func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
 	rule , ok := r.Context().Value("rule").(*models.BounceRule)
 
 	if !ok {
-		log.Println(ok)
+		log.Println("ContextValue of rule in GetRuleRoute: " + strconv.FormatBool(ok))
 		paramError :=  errors.New("Route Parameters")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
@@ -184,7 +184,7 @@ func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	toDelete, ok := r.Context().Value("rule").(*models.BounceRule)
 
 	if !ok {
-		log.Println(ok)
+		log.Println("ContextValue of rule in GetRuleRoute: " + strconv.FormatBool(ok))
 		paramError :=  errors.New("Route Parameters")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
@@ -263,7 +263,7 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := json.Marshal(*rules)
+	data, err := json.Marshal(rules)
 
 	if err != nil {
 		log.Println(err)
