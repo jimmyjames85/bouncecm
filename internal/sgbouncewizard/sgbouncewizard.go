@@ -216,7 +216,15 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = srv.DBClient.CreateRule(&rule)
+	LastInsertedID, err := srv.DBClient.CreateRule(&rule)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = srv.DBClient.CreateChangeLogEntry(LastInsertedID, &rule)
 
 	if err != nil {
 		log.Println(err)
@@ -248,22 +256,59 @@ func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = srv.DBClient.CreateChangeLogEntry(newRule.ID, &newRule)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
 
-func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
-	rules, err := srv.DBClient.GetAllChangelogEntries()
+func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var changelog []models.BounceRule
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusNotFound)
+		bounce_id := chi.URLParam(r, "bounce_id"); 
+		bouncd_idInt, err := strconv.Atoi(bounce_id)
+		
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+
+		changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		fmt.Println(changelog)
+
+		ctx := context.WithValue(r.Context(), "changelog", changelog)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (srv *Server) GetChangeLogEntriesRoute(w http.ResponseWriter, r *http.Request) {
+	changelog , ok := r.Context().Value("changelog").([]models.BounceRule)
+
+	if !ok {
+		log.Println("ContextValue of rule in GetChangeLogEntriesRoute: " + strconv.FormatBool(ok))
+		paramError :=  errors.New("Route Parameters")
+		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-	data, err := json.Marshal(rules)
+	data, err := json.Marshal(changelog)
 
 	if err != nil {
 		log.Println(err)
@@ -276,6 +321,53 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
+
+func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request) {
+	changelog, err := srv.DBClient.GetAllChangelogEntries()
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	data, err := json.Marshal(changelog)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+// createChangeLogEntryRoute will only be used to seed the change log databse 
+// with all current rules
+func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var changelog models.BounceRule
+
+	err := decoder.Decode(&changelog)
+	fmt.Println(changelog)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = srv.DBClient.CreateChangeLogEntry(changelog.ID, &changelog)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
 
 func (srv *Server) Serve(Port int) {
 	r := chi.NewRouter()
@@ -294,7 +386,13 @@ func (srv *Server) Serve(Port int) {
 	})
 
 	r.Route("/changelogs", func(r chi.Router) {
-		r.Get("/", srv.GetChangelog)
+		r.Get("/", srv.GetAllChangelogEntries)
+		r.Post("/", srv.createChangeLogEntryRoute)
+
+		r.Route("/{bounce_id}", func(r chi.Router) {
+			r.Use(srv.ChangelogContext)
+			r.Get("/", srv.GetChangeLogEntriesRoute)
+		})
 	})
 
 	r.Route("/bounce_rules", func(r chi.Router) {

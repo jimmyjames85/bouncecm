@@ -9,10 +9,7 @@ type BounceRule struct {
 	Priority     int            `json:"priority"`
 	Description  string `json:"description"`
 	BounceAction string         `json:"bounce_action"`
-}
-
-// RulesObject - JSON for db
-type RulesObject struct {
-	Rules    []BounceRule `json:"rules"`
-	NumRules int          `json:"numRules"`
+	UserID       int `json:"user_id"`
+	CreatedAt    int `json:"created_at"`
+	Comment      string `json:"comment"`
 }
