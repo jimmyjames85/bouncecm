@@ -255,7 +255,7 @@ func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 
 func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
-	rules, err := srv.DBClient.Changelog()
+	rules, err := srv.DBClient.GetAllChangelogEntries()
 
 	if err != nil {
 		log.Println(err)
