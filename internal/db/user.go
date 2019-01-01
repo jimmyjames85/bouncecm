@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
@@ -12,8 +14,19 @@ import (
 
 // GetUserByEmail - Function to pull user from db
 func GetUserByEmail(email string) ([]*models.User, error) {
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/drop_rules")
-	fmt.Println(email)
+	host := os.Getenv("DB_HOST")
+	pass := os.Getenv("DB_PASS")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+
+	log.Println(host, pass, port, user)
+
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/drop_rules", user, pass, host, port))
+
+	if err != nil {
+		return nil, err
+	}
+
 	rows, err := db.Query("SELECT * FROM user where email = ?", email)
 
 	if err != nil {
@@ -21,6 +34,8 @@ func GetUserByEmail(email string) ([]*models.User, error) {
 	}
 
 	result := []*models.User{}
+
+	log.Println("get data")
 
 	for rows.Next() {
 		u := models.User{}

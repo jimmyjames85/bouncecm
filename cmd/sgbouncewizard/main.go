@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jimmyjames85/bouncecm/internal/db"
-	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/jimmyjames85/bouncecm/internal/db"
+	"github.com/jimmyjames85/bouncecm/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -33,6 +33,7 @@ func main() {
 	})
 
 	http.ListenAndServe(":3000", r)
+	log.Println("Started")
 
 }
 
@@ -87,18 +88,23 @@ func CheckUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := db.GetUserByEmail(c.Email)
 
+	log.Println(len(user))
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	result := models.UserObject{}
+
+	log.Println("hello")
 	if verifyPassword(user[0].Hash, []byte(c.Password)) {
 		result.ID = user[0].ID
 		result.FirstName = user[0].FirstName
 		result.LastName = user[0].LastName
 		result.Role = user[0].Role
 	}
+	log.Println("bye")
 
 	data, err := json.Marshal(result)
 
@@ -106,6 +112,8 @@ func CheckUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	log.Println("writing data")
 
 	w.Write(data)
 }
