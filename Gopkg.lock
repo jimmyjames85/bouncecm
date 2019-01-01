@@ -2,51 +2,44 @@
 
 
 [[projects]]
-  digest = "1:a9fe0f8ff72c388d0128e88ce5f3c27d37dcd0950acd7cdb8323555f12463396"
   name = "github.com/go-chi/chi"
-  packages = [
-    ".",
-    "middleware",
-  ]
-  pruneopts = "UT"
+  packages = [".","middleware"]
   revision = "b5294d10673813fac8558e7f47242bc9e61b4c25"
   version = "v3.3.3"
 
 [[projects]]
-  digest = "1:adea5a94903eb4384abef30f3d878dc9ff6b6b5b0722da25b82e5169216dfb61"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
-  pruneopts = "UT"
-  revision = "d523deb1b23d913de5bdada721a6071e71283618"
-  version = "v1.4.0"
+  revision = "72cd26f257d44c1114970e19afddcd812016007e"
+  version = "v1.4.1"
+
+[[projects]]
+  name = "github.com/kelseyhightower/envconfig"
+  packages = ["."]
+  revision = "f611eb38b3875cc3bd991ca91c51d06446afa14c"
+  version = "v1.3.0"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:1ecf2a49df33be51e757d0033d5d51d5f784f35f68e5a38f797b2d3f03357d71"
   name = "golang.org/x/crypto"
-  packages = [
-    "bcrypt",
-    "blowfish",
-  ]
-  pruneopts = "UT"
+  packages = ["bcrypt","blowfish"]
   revision = "4d3f4d9ffa16a13f451c3b2999e9c49e9750bf06"
 
 [[projects]]
-  digest = "1:c25289f43ac4a68d88b02245742347c94f1e108c534dda442188015ff80669b3"
   name = "google.golang.org/appengine"
   packages = ["cloudsql"]
-  pruneopts = "UT"
   revision = "4a4468ece617fc8205e99368fa2200e9d1fad421"
   version = "v1.3.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/go-chi/chi",
-    "github.com/go-chi/chi/middleware",
-    "github.com/go-sql-driver/mysql",
-    "golang.org/x/crypto/bcrypt",
-  ]
+  inputs-digest = "77b6331719f9576ed45cd60c07f310dfeae7e2ce7449624cbe41bbe2803f7321"
   solver-name = "gps-cdcl"
   solver-version = 1
