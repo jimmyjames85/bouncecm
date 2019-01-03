@@ -5,35 +5,38 @@ database:
   volumes:
     - ./drop_rules.sql:/docker-entrypoint-initdb.d/drop_rules.sql
     - ./user.sql:/docker-entrypoint-initdb.d/user.sql
+    - ./changelog.sql:/docker-entrypoint-initdb.d/changelog.sql
   ports:
     - "3306:3306"
   expose:
     - "3306"
+  restart: unless-stopped
   environment:
     MYSQL_DATABASE: "drop_rules"
     MYSQL_USER: "khuong"
     MYSQL_PASSWORD: "tiet"
     MYSQL_ROOT_PASSWORD: "root"
     MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-
 bouncecm:
   image: golang
+  container_name: bouncecm_go
   volumes:
     - .:/go/src/github.com/jimmyjames85/bouncecm
   command: go run "/go/src/github.com/jimmyjames85/bouncecm/cmd/sgbouncewizard/main.go"
   links:
     - database
+  restart: unless-stopped
   environment:
     - DB_HOST=database
     - DB_PORT=3306
     - DB_USER=root
     - DB_PASS=root
-
-integration:
-  image: golang
-  volumes:
-    - .:/go/src/github.com/jimmyjames85/bouncecm
-  links:
-    - database
-    - bouncecm
-  command: go test "/go/src/github.com/jimmyjames85/bouncecm/internal/integration/"
+# integration:
+#   image: golang
+#   volumes:
+#     - .:/go/src/github.com/jimmyjames85/bouncecm
+#   links:
+#     - database
+#     - bouncecm
+#   restart: unless-stopped
+#   command: go test "/go/src/github.com/jimmyjames85/bouncecm/internal/integration/"
