@@ -47,7 +47,7 @@ func  (c *Client) GetAllChangelogEntries() ([]models.BounceRule, error) {
 
 func (c *Client) GetChangeLogEntries(id int, limit *int) ([]models.BounceRule, error) {
 
-	stmt, err := c.Conn.Prepare("SELECT * From changelog WHERE rule_id = ? LIMIT ?")
+	stmt, err := c.Conn.Prepare("SELECT * From changelog WHERE rule_id = ?  ORDER BY created_at DESC LIMIT ?")
 
 
 	var rows *sql.Rows
