@@ -186,3 +186,21 @@ func TestBounceRuleGetSingleHandler(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 }
+
+func TestBounceRuleHandler(t *testing.T) {
+	req, err := http.NewRequest("GET", "/bounce_rules", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.LoadConfig()
+	rr := httptest.NewRecorder()
+	srv, err := sgbouncewizard.NewServer(cfg)
+	handler := http.HandlerFunc(srv.GetAllRulesRoute)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+}
