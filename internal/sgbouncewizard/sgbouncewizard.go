@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"fmt"
+	"strings"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/jimmyjames85/bouncecm/internal/db"
@@ -282,8 +283,10 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 		var changelog []models.BounceRule
 
 		bounce_id := chi.URLParam(r, "bounce_id"); 
-		limit := chi.URLParam(r, "limit"); 
-		fmt.Println(limit)
+
+		
+		
+	
 		bouncd_idInt, err := strconv.Atoi(bounce_id)
 		
 		if err != nil {
@@ -293,12 +296,35 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 		}
 
 
-		changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
+		queryParams := r.URL.Query()
+
+		limit, ok := queryParams["limit"];
+	
+		if  !ok {
+			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, nil)
+		} else {
+			
+			limitAsString := strings.Join(limit, "")
+			limitAsInt, err := strconv.Atoi(limitAsString)
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			
+			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, &limitAsInt)
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+
 		}
+
+
+
 
 		ctx := context.WithValue(r.Context(), "changelog", changelog)
 		next.ServeHTTP(w, r.WithContext(ctx))

@@ -3,6 +3,8 @@ package db
 import (
 	"github.com/pkg/errors"
 	"time"
+	"database/sql"
+	"math"
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
@@ -43,14 +45,26 @@ func  (c *Client) GetAllChangelogEntries() ([]models.BounceRule, error) {
 
 
 
-func (c *Client) GetChangeLogEntries(id int) ([]models.BounceRule, error) {
-	rows, err := c.Conn.Query("SELECT * From changelog WHERE rule_id = ?", id)
-	
-	rules := []models.BounceRule{}
+func (c *Client) GetChangeLogEntries(id int, limit *int) ([]models.BounceRule, error) {
+
+	stmt, err := c.Conn.Prepare("SELECT * From changelog WHERE rule_id = ? LIMIT ?")
+
+
+	var rows *sql.Rows
+
+
+	if limit == nil{
+		rows, err = stmt.Query(id, math.MaxInt64)
+	} else {
+		rows, err = stmt.Query(id , limit)
+	}
 
 	if err != nil {
 		return nil, errors.Wrap(err, "GetChangeLogEntries Query")
 	}
+	
+	rules := []models.BounceRule{}
+
 
 	defer rows.Close()
 
