@@ -16,6 +16,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+type TempJsonObject map[string]interface{}
+
 type Server struct {
 	DBClient *db.Client
 }
@@ -132,7 +134,7 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-// ListRules - wrapper to grab all rules
+
 func  (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	rules, err := srv.DBClient.GetAllRules()
 
@@ -232,9 +234,19 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	newRuleID , err := json.Marshal(TempJsonObject{"id": LastInsertedID})
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(newRuleID)
 }
 
 func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
@@ -275,6 +287,8 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 		var changelog []models.BounceRule
 
 		bounce_id := chi.URLParam(r, "bounce_id"); 
+		limit := chi.URLParam(r, "limit"); 
+		fmt.Println(limit)
 		bouncd_idInt, err := strconv.Atoi(bounce_id)
 		
 		if err != nil {
@@ -386,9 +400,10 @@ func (srv *Server) Serve(Port int) {
 		r.Get("/", srv.GetAllChangelogEntries)
 		r.Post("/", srv.createChangeLogEntryRoute)
 
-		r.Route("/{bounce_id}", func(r chi.Router) {
+		r.Route("/{bounce_id}/{limit}", func(r chi.Router) {
 			r.Use(srv.ChangelogContext)
 			r.Get("/", srv.GetChangeLogEntriesRoute)
+
 		})
 	})
 
