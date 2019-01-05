@@ -14,6 +14,7 @@ import (
 	"github.com/jimmyjames85/bouncecm/internal/config"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/pkg/errors"
+	"github.com/go-chi/cors"
 )
 
 type TempJsonObject map[string]interface{}
@@ -128,7 +129,6 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
@@ -152,7 +152,6 @@ func  (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
@@ -176,7 +175,6 @@ func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)  
@@ -200,7 +198,6 @@ func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
@@ -243,7 +240,6 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(newRuleID)
@@ -276,7 +272,6 @@ func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
@@ -328,7 +323,6 @@ func (srv *Server) GetChangeLogEntriesRoute(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
@@ -351,7 +345,6 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
@@ -388,6 +381,16 @@ func (srv *Server) Serve(Port int) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	})
+
+	r.Use(cors.Handler)
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome: Routes \n\n /bounce_rules/{id} - Get Post Put Delete \n\n /bounce_rules - Get \n\n /change_log - Get \n\n /change_log/{id} - Get"))
 	})
@@ -400,7 +403,7 @@ func (srv *Server) Serve(Port int) {
 		r.Get("/", srv.GetAllChangelogEntries)
 		r.Post("/", srv.createChangeLogEntryRoute)
 
-		r.Route("/{bounce_id}/{limit}", func(r chi.Router) {
+		r.Route("/{bounce_id}", func(r chi.Router) {
 			r.Use(srv.ChangelogContext)
 			r.Get("/", srv.GetChangeLogEntriesRoute)
 
