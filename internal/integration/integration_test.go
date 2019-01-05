@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jimmyjames85/bouncecm/internal/config"
+	"github.com/jimmyjames85/bouncecm/internal/db"
 	"github.com/jimmyjames85/bouncecm/internal/sgbouncewizard"
 	"github.com/stretchr/testify/assert"
 
@@ -37,6 +37,7 @@ func init() {
 	if err = database.Ping(); err != nil {
 		panic(err)
 	}
+	log.Println("NEW SERVER STARTED")
 }
 
 func TestFirst(t *testing.T) {
@@ -45,19 +46,26 @@ func TestFirst(t *testing.T) {
 
 func TestGetAllBounceRules(t *testing.T) {
 	resp, err := http.Get("http://localhost:3000/bounce_rules")
-	log.Println(resp)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, resp)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestGetBounceRule(t *testing.T) {
 	resp, err := http.Get("http://localhost:3000/bounce_rules/173")
 	assert.Nil(t, err)
 	assert.NotNil(t, resp)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 }
 
 func TestPostBounceRule(t *testing.T) {
+	resp, err := http.Get("http://localhost:3000/bounce_rules/506")
+	assert.Nil(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
 	reqBody := map[string]interface{}{
 		"ResponseCode": 421,
 		"EnhancedCode": "",
@@ -68,14 +76,15 @@ func TestPostBounceRule(t *testing.T) {
 	}
 	preSend, err := json.Marshal(reqBody)
 	if err != nil {
-		log.Fatalln(err)
+		t.Errorf("Formatting of JSON incorrect")
 	}
 
-	resp, err := http.Post("http://localhost:3000/bounce_rules", "application/json", bytes.NewBuffer(preSend))
+	resp, err = http.Post("http://localhost:3000/bounce_rules", "application/json", bytes.NewBuffer(preSend))
 	if err != nil {
-		log.Fatalln(err)
+		t.Errorf("POST to route failed")
 	}
 	assert.NotNil(t, resp)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 // func TestDeleteBounceRule(t *testing.T) {
@@ -120,10 +129,73 @@ func TestPostBounceRule(t *testing.T) {
 
 // }
 
+func TestBounceRuleGetAllHandler(t *testing.T) {
+	rr := httptest.NewRecorder()
+
+	// Avoids actually setting up server everytime, later moved into suite
+	// vs
+	// 	cfg, err := config.LoadConfig()
+	// srv, err := sgbouncewizard.NewServer(cfg)
+
+	dbc := db.Client{Conn: database}
+	srv := sgbouncewizard.Server{DBClient: &dbc}
+
+	handler := http.HandlerFunc(srv.GetAllRulesRoute)
+	req, err := http.NewRequest("GET", "/bounce_rules", nil)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	handler.ServeHTTP(rr, req)
+	log.Println(rr)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+}
+
+func TestBounceRuleGetSingleHandler(t *testing.T) {
+	rr := httptest.NewRecorder()
+	dbc := db.Client{Conn: database}
+	srv := sgbouncewizard.Server{DBClient: &dbc}
+
+	handler := http.HandlerFunc(srv.GetRuleRoute)
+	req, err := http.NewRequest("GET", "/bounce_rules/180", nil)
+	if err != nil {
+		t.Errorf("Improper HTTP request")
+	}
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+}
+
+// Use testify suites to set up before each test
+
+// type BounceRuleSuite struct {
+// 	suite.Suite
+// 	cfg Configuration
+// 	srv *Server
+// }
+
+// func (suit *BounceRuleSuite) SetupTest() {
+// 	suite.cfg = config.LoadConfig()
+// 	suite.srv = sgbouncewizard.NewServer(cfg)
+// }
+
+// func (suite *BounceRuleSuite) TestGetHandler() {
+
+// }
+
+// func TestBounceRuleSuite(t *testing.T) {
+// 	suite.Run(t, new(BounceRuleSuite))
+// }
+
 func TestGetAllChangelogs(t *testing.T) {
 	resp, err := http.Get("http://localhost:3000/changelogs")
 	assert.Nil(t, err)
 	assert.NotNil(t, resp)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 // Uncomment after changelog-CR is merged
@@ -135,69 +207,16 @@ func TestGetAllChangelogs(t *testing.T) {
 // }
 
 func TestChangeLogsGetHandler(t *testing.T) {
+	rr := httptest.NewRecorder()
+	dbc := db.Client{Conn: database}
+	srv := sgbouncewizard.Server{DBClient: &dbc}
+	handler := http.HandlerFunc(srv.GetChangelog) // Change to GetAllChangelogEntries after changelog-CR is merged
 	req, err := http.NewRequest("GET", "/changelogs", nil)
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.LoadConfig()
-	rr := httptest.NewRecorder()
-	srv, err := sgbouncewizard.NewServer(cfg)
-	handler := http.HandlerFunc(srv.GetChangelog) // Change to GetAllChangelogEntries after changelog-CR is merged
-	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-}
-
-func TestBounceRuleGetAllHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "/bounce_rules", nil)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := config.LoadConfig()
-	rr := httptest.NewRecorder()
-	srv, err := sgbouncewizard.NewServer(cfg)
-	handler := http.HandlerFunc(srv.GetAllRulesRoute)
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-}
-
-func TestBounceRuleGetSingleHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "/bounce_rules/180", nil)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := config.LoadConfig()
-	rr := httptest.NewRecorder()
-	srv, err := sgbouncewizard.NewServer(cfg)
-	handler := http.HandlerFunc(srv.GetAllRulesRoute)
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-}
-
-func TestBounceRuleHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "/bounce_rules", nil)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := config.LoadConfig()
-	rr := httptest.NewRecorder()
-	srv, err := sgbouncewizard.NewServer(cfg)
-	handler := http.HandlerFunc(srv.GetAllRulesRoute)
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
