@@ -2,7 +2,9 @@ package db
 
 import (
 	"database/sql"
+
 	"github.com/pkg/errors"
+
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
@@ -27,7 +29,7 @@ func (c *Client) GetAllRules() ([]models.BounceRule, error) {
 
 		if description.Valid {
 			br.Description = description.String
-		} 
+		}
 
 		if err != nil {
 			return nil, errors.Wrap(err, "GetAllRules Scanning")
