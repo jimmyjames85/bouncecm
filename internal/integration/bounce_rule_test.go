@@ -3,7 +3,6 @@ package integration
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -170,22 +169,6 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 // 	}
 
 // }
-
-func (suite *BounceRuleSuite) BeforeTest() {
-	result, err := Database.Exec("LOAD DATA INFILE ?", "drop_rules.sql")
-	if err != nil {
-		log.Fatal(err)
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("%d rows inserted\n", rows)
-}
-
-func (suite *BounceRuleSuite) AfterTest() {
-
-}
 
 func TestBounceRuleSuite(t *testing.T) {
 	suite.Run(t, new(BounceRuleSuite))

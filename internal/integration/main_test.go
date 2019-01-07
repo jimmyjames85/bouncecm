@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 
 	var err error
 
-	Database, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/test_rules", user, pass, host, port))
+	Database, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/drop_rules", user, pass, host, port))
 
 	if err != nil {
 		panic(err)
