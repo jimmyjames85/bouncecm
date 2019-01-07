@@ -39,10 +39,16 @@ services:
       - DB_PASS=root
   # integration:
   #   image: golang
+  #   container_name: bouncecm_test
   #   volumes:
   #     - .:/go/src/github.com/jimmyjames85/bouncecm
-  #   links:
-  #     - database
-  #     - bouncecm
-  #   restart: unless-stopped
-  #   command: go test "/go/src/github.com/jimmyjames85/bouncecm/internal/integration/"
+  #   depends_on:
+  #     test_database:
+  #       condition: service_healthy
+  #   command: go run "/go/src/github.com/jimmyjames85/bouncecm/cmd/sgbouncewizard/main.go"
+  #   environment:
+  #     - DB_HOST=test_database
+  #     - DB_PORT=3308
+  #     - DB_USER=root
+  #     - DB_PASS=root
+  #     - DB_NAME=test_rules
