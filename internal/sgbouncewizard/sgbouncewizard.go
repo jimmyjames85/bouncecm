@@ -291,6 +291,11 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 
 		limit, ok := queryParams["limit"]
 
+		if len(limit) > 1 {
+			paramError := errors.New("Duplicate Parameters")
+			http.Error(w, paramError.Error(), http.StatusBadRequest)
+		}
+
 		if !ok {
 			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, nil)
 		} else {
@@ -384,6 +389,8 @@ func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Requ
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (srv *Server) Serve(Port int) {

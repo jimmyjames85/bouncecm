@@ -5,6 +5,7 @@ import (
 	"time"
 	"database/sql"
 	"math"
+	"regexp"
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
@@ -82,7 +83,13 @@ func (c *Client) GetChangeLogEntries(id int, limit *int) ([]models.BounceRule, e
 }
 
 func (c *Client) CreateChangeLogEntry(lastId int, entry *models.BounceRule) error {
-	_, err := c.Conn.Exec("INSERT INTO changelog(rule_id,user_id,comment,created_at,response_code,enhanced_code,regex,priority,description,bounce_action) VALUES(?,?,?,?,?,?,?,?,?,?)", lastId, entry.UserID, entry.Comment,int32(time.Now().Unix()) ,entry.ResponseCode, entry.EnhancedCode, entry.Regex, entry.Priority, entry.Description, entry.BounceAction)
+	_ , err :=  regexp.Compile(entry.Regex)
+
+	if err != nil {
+		return errors.Wrap(err, "Invalid Regex")
+	}
+	
+	_, err = c.Conn.Exec("INSERT INTO changelog(rule_id,user_id,comment,created_at,response_code,enhanced_code,regex,priority,description,bounce_action) VALUES(?,?,?,?,?,?,?,?,?,?)", lastId, entry.UserID, entry.Comment,int32(time.Now().Unix()) ,entry.ResponseCode, entry.EnhancedCode, entry.Regex, entry.Priority, entry.Description, entry.BounceAction)
 	if err != nil {
 		return errors.Wrap(err, "CreateChangeLogEntry")
 	}
