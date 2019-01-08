@@ -19,25 +19,34 @@ func (suite *ChangelogSuite) SetupSuite() {
 }
 
 func (suite *ChangelogSuite) SetupTest() {
-	_, err := Database.Exec(`CREATE TABLE IF NOT EXISTS changelog (
-		rule_id smallint(5) unsigned NOT NULL,
-		user_id smallint(5) unsigned NOT NULL,
-		comment varchar(255) NOT NULL,
-		created_at int(11) NOT NULL,
-		response_code smallint(5) unsigned NOT NULL DEFAULT '0',
-		enhanced_code varchar(16) NOT NULL DEFAULT '',
-		regex varchar(255) NOT NULL DEFAULT '',
-		priority tinyint(3) unsigned NOT NULL DEFAULT '0',
-		description varchar(255) DEFAULT NULL,
-		bounce_action varchar(255) NOT NULL,
-		PRIMARY KEY (created_at)
-	  ) ENGINE=InnoDB DEFAULT CHARSET=latin1;`)
-
+	_, err := Database.Exec(`
+		CREATE TABLE IF NOT EXISTS changelog (
+			rule_id smallint(5) unsigned NOT NULL,
+			user_id smallint(5) unsigned NOT NULL,
+			comment varchar(255) NOT NULL,
+			created_at int(11) NOT NULL,
+			response_code smallint(5) unsigned NOT NULL DEFAULT '0',
+			enhanced_code varchar(16) NOT NULL DEFAULT '',
+			regex varchar(255) NOT NULL DEFAULT '',
+			priority tinyint(3) unsigned NOT NULL DEFAULT '0',
+			description varchar(255) DEFAULT NULL,
+			bounce_action varchar(255) NOT NULL,
+			PRIMARY KEY (created_at)
+	  	) ENGINE=InnoDB DEFAULT CHARSET=latin1;`)
 	if err != nil {
 		suite.T().Fatalf("Failed to setup for test\nError: %v", err)
 	}
 
-	mysql.RegisterLocalFile("../../changelog_test.txt")
+	mysql.RegisterLocalFile("./changelog_test.txt")
+
+	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "./changelog_test.txt" + "' INTO TABLE changelog FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
+	if err != nil {
+		suite.T().Fatalf("Failed to load data from file\nError: %v", err)
+	}
+	_, err = res.RowsAffected()
+	if err != nil {
+		suite.T().Fatalf("Failed to get inserted rows\nError: %v", err)
+	}
 }
 
 func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {

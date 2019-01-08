@@ -25,7 +25,7 @@ func (suite *BounceRuleSuite) SetupSuite() {
 }
 
 func (suite *BounceRuleSuite) SetupTest() {
-	res, err := Database.Exec(`
+	_, err := Database.Exec(`
 		CREATE TABLE IF NOT EXISTS bounce_rule (
 			id smallint(5) unsigned NOT NULL AUTO_INCREMENT,
 			response_code smallint(5) unsigned NOT NULL DEFAULT '0',
@@ -43,9 +43,9 @@ func (suite *BounceRuleSuite) SetupTest() {
 		suite.T().Fatalf("Failed to setup for test\nError: %v", err)
 	}
 
-	mysql.RegisterLocalFile("../../bounce_rule_test.txt")
+	mysql.RegisterLocalFile("./bounce_rule_test.txt")
 
-	res, err = Database.Exec("LOAD DATA LOCAL INFILE '" + "../../bounce_rule_test.txt" + "' INTO TABLE bounce_rule FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
+	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "./bounce_rule_test.txt" + "' INTO TABLE bounce_rule FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
 	if err != nil {
 		suite.T().Fatalf("Failed to load data from file\nError: %v", err)
 	}
