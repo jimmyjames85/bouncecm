@@ -17,10 +17,12 @@ func TestMain(m *testing.M) {
 	pass := os.Getenv("DB_PASS")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")
+	dbName := os.Getenv("DB_NAME")
 
 	var err error
 
-	Database, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/drop_rules", user, pass, host, port))
+	Database, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, pass, host, port, dbName))
+	log.Println("the Server has Started")
 
 	if err != nil {
 		panic(err)

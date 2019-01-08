@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +8,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jimmyjames85/bouncecm/internal/models"
 )
+
+// Refactor into Suite to use SetupTest and TearDownTest
 
 func TestBounceRuleDatabaseSelect(t *testing.T) {
 	var br models.BounceRule
@@ -79,22 +80,32 @@ func TestBounceRuleDatabaseInsert(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to get number of deleted rows")
 	}
-	log.Println(deletedRows)
+
 	if deletedRows != 1 {
 		t.Fatalf("Failed to remove test data\nError: %v", err)
 	}
 }
 
 func TestBounceRuleDatabaseDelete(t *testing.T) {
-	_, err := Database.Exec(`DELETE FROM bounce_rule where id = 505`)
+	res, err := Database.Exec(`DELETE FROM bounce_rule where id = 505`)
 
 	if err != nil {
 		t.Fatalf("Erroneous test data detected\nError: %v", err)
 	}
 
+	rowsDeleted, err := res.RowsAffected()
+
+	if err != nil {
+		t.Fatalf("Failed to retrieve number of rows affected by DELETE\nError: %v", err)
+	}
+
+	if rowsDeleted != 0 {
+		t.Fatalf("Errorneous test data detected\nError: %v", err)
+	}
+
 	_, err = Database.Exec(`DELETE FROM bounce_rule where id = 506`)
 
-	if err == nil {
+	if err != nil {
 		t.Fatalf("Erroneous test data detected\nError: %v", err)
 	}
 

@@ -190,7 +190,7 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := srv.DBClient.DeleteRule(toDelete.ID)
-
+	log.Println(err)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -37,18 +37,37 @@ services:
       - DB_PORT=3306
       - DB_USER=root
       - DB_PASS=root
-  # integration:
-  #   image: golang
-  #   container_name: bouncecm_test
-  #   volumes:
-  #     - .:/go/src/github.com/jimmyjames85/bouncecm
-  #   depends_on:
-  #     test_database:
-  #       condition: service_healthy
-  #   command: go run "/go/src/github.com/jimmyjames85/bouncecm/cmd/sgbouncewizard/main.go"
-  #   environment:
-  #     - DB_HOST=test_database
-  #     - DB_PORT=3308
-  #     - DB_USER=root
-  #     - DB_PASS=root
-  #     - DB_NAME=test_rules
+      - DB_NAME=drop_rules
+  test_database:
+    image: mysql
+    container_name: droprules.database.test
+    command: mysqld --user=root --local-infile
+    ports:
+      - "33062:3306"
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: "test_rules"
+      MYSQL_USER: "khuong"
+      MYSQL_PASSWORD: "tiet"
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+  integration:
+    image: golang
+    container_name: bouncecm_test
+    volumes:
+      - .:/go/src/github.com/jimmyjames85/bouncecm
+    depends_on:
+      test_database:
+        condition: service_healthy
+    command: go run "/go/src/github.com/jimmyjames85/bouncecm/cmd/sgbouncewizard/main.go"
+    environment:
+      - DB_HOST=test_database
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASS=root
+      - DB_NAME=test_rules
+      - API_PORT=4000
