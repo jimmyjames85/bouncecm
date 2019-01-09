@@ -9,6 +9,11 @@ type BounceRule struct {
 	Priority     int            `json:"priority"`
 	Description  string `json:"description"`
 	BounceAction string         `json:"bounce_action"`
+}
+
+
+type ChangelogEntry struct {
+	BounceRule   
 	UserID       int `json:"user_id"`
 	CreatedAt    int `json:"created_at"`
 	Comment      string `json:"comment"`

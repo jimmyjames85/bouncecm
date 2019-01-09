@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -202,10 +201,13 @@ func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
+
 	decoder := json.NewDecoder(r.Body)
-	var rule models.BounceRule
+	var rule models.ChangelogEntry
 
+	fmt.Println("Rule", rule)
 	err := decoder.Decode(&rule)
+	fmt.Println("Rule", rule)
 
 	if err != nil {
 		log.Println(err)
@@ -213,14 +215,12 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	LastInsertedID, err := srv.DBClient.CreateRule(&rule)
-
+	LastInsertedID, err := srv.DBClient.CreateRule(&rule.BounceRule)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	err = srv.DBClient.CreateChangeLogEntry(LastInsertedID, &rule)
 
 	if err != nil {
@@ -244,7 +244,7 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var newRule models.BounceRule
+	var newRule models.ChangelogEntry
 	err := decoder.Decode(&newRule)
 
 	if err != nil {
@@ -253,7 +253,7 @@ func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = srv.DBClient.UpdateRule(&newRule)
+	err = srv.DBClient.UpdateRule(&newRule.BounceRule)
 
 	if err != nil {
 		log.Println(err)
@@ -275,7 +275,7 @@ func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var changelog []models.BounceRule
+		var changelog []models.ChangelogEntry
 
 		bounce_id := chi.URLParam(r, "bounce_id")
 
@@ -325,7 +325,7 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 }
 
 func (srv *Server) GetChangeLogEntriesRoute(w http.ResponseWriter, r *http.Request) {
-	changelog, ok := r.Context().Value("changelog").([]models.BounceRule)
+	changelog, ok := r.Context().Value("changelog").([]models.ChangelogEntry)
 
 	if !ok {
 		log.Println("ContextValue of rule in GetChangeLogEntriesRoute: " + strconv.FormatBool(ok))
@@ -373,7 +373,7 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 // with all current rules
 func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var changelog models.BounceRule
+	var changelog models.ChangelogEntry
 
 	err := decoder.Decode(&changelog)
 	if err != nil {
@@ -419,7 +419,7 @@ func (srv *Server) Serve(Port int) {
 		r.Post("/", srv.CheckUser)
 	})
 
-	r.Route("/changelogs", func(r chi.Router) {
+	r.Route("/change_logs", func(r chi.Router) {
 		r.Get("/", srv.GetAllChangelogEntries)
 		r.Post("/", srv.createChangeLogEntryRoute)
 
