@@ -205,9 +205,7 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var rule models.ChangelogEntry
 
-	fmt.Println("Rule", rule)
 	err := decoder.Decode(&rule)
-	fmt.Println("Rule", rule)
 
 	if err != nil {
 		log.Println(err)
