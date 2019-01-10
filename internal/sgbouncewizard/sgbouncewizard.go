@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -298,8 +297,7 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, nil)
 		} else {
 
-			limitAsString := strings.Join(limit, "")
-			limitAsInt, err := strconv.Atoi(limitAsString)
+			limitAsInt, err := strconv.Atoi(r.FormValue("limit"))			
 
 			if err != nil {
 				log.Println(err)
