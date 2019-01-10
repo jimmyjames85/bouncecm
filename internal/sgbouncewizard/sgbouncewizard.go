@@ -79,14 +79,14 @@ func (srv *Server) generateHash(pwd []byte) (string, error) {
 	return result, nil
 }
 
-func (srv *Server) verifyPassword(hashed string, plain []byte) bool {
+func (srv *Server) verifyPassword(hashed string, plain []byte) error {
 	byteHash := []byte(hashed)
 
 	err := bcrypt.CompareHashAndPassword(byteHash, plain)
 	if err != nil {
-		return false
+		return err
 	}
-	return true
+	return nil
 }
 
 // CheckUser - wrapper function to auth user
@@ -109,21 +109,26 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := models.UserObject{}
-	if srv.verifyPassword(user[0].Hash, []byte(c.Password)) {
-		result.ID = user[0].ID
-		result.FirstName = user[0].FirstName
-		result.LastName = user[0].LastName
-		result.Role = user[0].Role
-	} else {
-		log.Println("Invalid user credentials")
-		passError := errors.New("Invalid user credentials")
+	if len(user) == 0 {
+		passError := errors.New("User not found")
 		http.Error(w, passError.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	data, err := json.Marshal(result)
+	result := models.UserObject{}
+	err = srv.verifyPassword(user[0].Hash, []byte(c.Password))
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	result.ID = user[0].ID
+	result.FirstName = user[0].FirstName
+	result.LastName = user[0].LastName
+	result.Role = user[0].Role
 
+	data, err := json.Marshal(result)
+	log.Println("No user")
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
