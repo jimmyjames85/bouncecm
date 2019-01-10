@@ -43,9 +43,9 @@ func (suite *BounceRuleSuite) SetupTest() {
 		suite.T().Fatalf("Failed to setup for test\nError: %v", err)
 	}
 
-	mysql.RegisterLocalFile("./bounce_rule_test.txt")
+	mysql.RegisterLocalFile("testdata/bounce_rules.csv")
 
-	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "./bounce_rule_test.txt" + "' INTO TABLE bounce_rule FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
+	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "testdata/bounce_rules.csv" + "' INTO TABLE bounce_rule FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
 	if err != nil {
 		suite.T().Fatalf("Failed to load data from file\nError: %v", err)
 	}
@@ -53,8 +53,8 @@ func (suite *BounceRuleSuite) SetupTest() {
 	if err != nil {
 		suite.T().Fatalf("Failed to get inserted rows\nError: %v", err)
 	}
-	if inserted != 49 {
-		suite.T().Fatalf("Expected %d rows in bounce_rule table, got %d", 49, inserted)
+	if inserted != 295 {
+		suite.T().Fatalf("Expected %d rows in bounce_rule table, got %d", 295, inserted)
 	}
 }
 
@@ -93,7 +93,7 @@ func (suite *BounceRuleSuite) TestGetSingleBounceRuleHandler() {
 }
 
 func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
-	resp, err := http.Get("http://localhost:4000/bounce_rules/506")
+	resp, err := http.Get("http://localhost:4000/bounce_rules/507")
 	if err != nil {
 		suite.T().Errorf("GET requested failed")
 	}
@@ -121,8 +121,12 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 	assert.NotNil(suite.T(), resp)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	// Redo GET request to confirm rule is in database
-	// Delete Rule
+	resp, err = http.Get("http://localhost:4000/bounce_rules/507")
+	if err != nil {
+		suite.T().Errorf("GET requested failed")
+	}
+
+	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 }
 
 func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
@@ -189,9 +193,16 @@ func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
 }
 
 func (suite *BounceRuleSuite) TearDownTest() {
-	_, err := Database.Exec(`DELETE FROM bounce_rule`)
+	_, err := Database.Exec(`TRUNCATE TABLE bounce_rule`)
 	if err != nil {
 		suite.T().Fatalf("Failed to tear down test data\nError: %v", err)
+	}
+}
+
+func (suite *BounceRuleSuite) TearDownSuite() {
+	_, err := Database.Exec(`DROP TABLE IF EXISTS bounce_rule`)
+	if err != nil {
+		suite.T().Fatalf("Failed to remove test table from database\nError: %v", err)
 	}
 }
 

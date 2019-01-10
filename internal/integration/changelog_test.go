@@ -37,9 +37,9 @@ func (suite *ChangelogSuite) SetupTest() {
 		suite.T().Fatalf("Failed to setup for test\nError: %v", err)
 	}
 
-	mysql.RegisterLocalFile("./changelog_test.txt")
+	mysql.RegisterLocalFile("testdata/changelog_test.csv")
 
-	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "./changelog_test.txt" + "' INTO TABLE changelog FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
+	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "testdata/changelog_test.csv" + "' INTO TABLE changelog FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
 	if err != nil {
 		suite.T().Fatalf("Failed to load data from file\nError: %v", err)
 	}
@@ -92,9 +92,16 @@ func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
 // }
 
 func (suite *ChangelogSuite) TearDownTest() {
-	_, err := Database.Exec(`DELETE FROM changelog`)
+	_, err := Database.Exec(`TRUNCATE TABLE changelog`)
 	if err != nil {
 		suite.T().Fatalf("Failed to tear down test data\nError: %v", err)
+	}
+}
+
+func (suite *ChangelogSuite) TearDownSuite() {
+	_, err := Database.Exec(`DROP TABLE IF EXISTS changelog`)
+	if err != nil {
+		suite.T().Fatalf("Failed to remove test table from database\nError: %v", err)
 	}
 }
 
