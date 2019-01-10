@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -115,8 +116,9 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 		result.LastName = user[0].LastName
 		result.Role = user[0].Role
 	} else {
-		passError := errors.New("verifyPassword Failed")
-		http.Error(w, passError.Error(), http.StatusBadRequest)
+		log.Println("Invalid user credentials")
+		passError := errors.New("Invalid user credentials")
+		http.Error(w, passError.Error(), http.StatusUnauthorized)
 		return
 	}
 
