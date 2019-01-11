@@ -5,6 +5,8 @@ database:
   volumes:
     - ./drop_rules.sql:/docker-entrypoint-initdb.d/drop_rules.sql
     - ./user.sql:/docker-entrypoint-initdb.d/user.sql
+    - ./changelog.sql:/docker-entrypoint-initdb.d/changelog.sql
+
   ports:
     - "3306:3306"
   environment:

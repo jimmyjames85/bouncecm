@@ -22,5 +22,3 @@ func main() {
 	}
 	srv.Serve(cfg.APIPort)
 }
-
-
