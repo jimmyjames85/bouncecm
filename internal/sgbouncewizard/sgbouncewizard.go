@@ -7,15 +7,10 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-<<<<<<< HEAD
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-=======
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
->>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	"github.com/jimmyjames85/bouncecm/internal/config"
 	"github.com/jimmyjames85/bouncecm/internal/db"
 	"github.com/jimmyjames85/bouncecm/internal/models"
@@ -83,11 +78,7 @@ func (srv *Server) generateHash(pwd []byte) (string, error) {
 	return result, nil
 }
 
-<<<<<<< HEAD
-func (srv *Server) verifyPassword(hashed string, plain []byte) bool {
-=======
 func (srv *Server) verifyPassword(hashed string, plain []byte) error {
->>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	byteHash := []byte(hashed)
 
 	err := bcrypt.CompareHashAndPassword(byteHash, plain)
@@ -124,21 +115,10 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := models.UserObject{}
-<<<<<<< HEAD
-	if srv.verifyPassword(user[0].Hash, []byte(c.Password)) {
-		result.ID = user[0].ID
-		result.FirstName = user[0].FirstName
-		result.LastName = user[0].LastName
-		result.Role = user[0].Role
-	} else {
-		passError := errors.New("verifyPassword Failed")
-		http.Error(w, passError.Error(), http.StatusBadRequest)
-=======
 	err = srv.verifyPassword(user[0].Hash, []byte(c.Password))
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
->>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 		return
 	}
 	result.ID = user[0].ID
@@ -159,12 +139,8 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-<<<<<<< HEAD
 // ListRules - wrapper to grab all rules
 func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
-=======
-func (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
->>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	rules, err := srv.DBClient.GetAllRules()
 
 	if err != nil {
@@ -186,11 +162,7 @@ func (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-<<<<<<< HEAD
 func (srv *Server) GetRuleRoute(w http.ResponseWriter, r *http.Request) {
-=======
-func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
->>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	rule, ok := r.Context().Value("rule").(*models.BounceRule)
 
 	if !ok {
@@ -224,11 +196,6 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := srv.DBClient.DeleteRule(toDelete.ID)
-<<<<<<< HEAD
-	log.Println(err)
-=======
-
->>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -239,16 +206,10 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-<<<<<<< HEAD
 func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var rule models.BounceRule
-=======
-func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	var rule models.ChangelogEntry
->>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 
 	err := decoder.Decode(&rule)
 
@@ -316,10 +277,6 @@ func (srv *Server) UpdateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-<<<<<<< HEAD
-func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
-	rules, err := srv.DBClient.GetAllChangelogEntries()
-=======
 func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var changelog []models.ChangelogEntry
@@ -347,7 +304,7 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, nil)
 		} else {
 
-			limitAsInt, err := strconv.Atoi(r.FormValue("limit"))			
+			limitAsInt, err := strconv.Atoi(r.FormValue("limit"))
 
 			if err != nil {
 				log.Println(err)
@@ -395,7 +352,6 @@ func (srv *Server) GetChangeLogEntriesRoute(w http.ResponseWriter, r *http.Reque
 
 func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request) {
 	changelog, err := srv.DBClient.GetAllChangelogEntries()
->>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 
 	if err != nil {
 		log.Println(err)

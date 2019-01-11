@@ -50,7 +50,7 @@ func (suite *ChangelogSuite) SetupTest() {
 }
 
 func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
-	req, err := http.NewRequest("GET", "http://localhost:4000/changelogs", nil)
+	req, err := http.NewRequest("GET", "http://localhost:4000/change_logs", nil)
 	if err != nil {
 		suite.T().Errorf("Error in forming request")
 	}
@@ -67,8 +67,8 @@ func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
 
 // Uncomment after changelog-CR is merged
 //
-// func TestGetChangelogAcceptance(t *testing.T) {
-// 	resp, err := http.Get("http://localhost:3000/changelogs/300")
+// func (suite *ChangelogSuite) TestGetSingleChangelogHandler() {
+// 	resp, err := http.Get("http://localhost:3000/change_logs/300")
 // 	assert.Nil(t, err)
 // 	assert.NotNil(t, resp)
 // }
@@ -89,6 +89,46 @@ func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
 // 	if status := rr.Code; status != http.StatusOK {
 // 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 // 	}
+// }
+
+// func (suite *ChangelogSuite) TestPostChangelogRoute() {
+// 	resp, err := http.Get("http://localhost:4000/change_logs/604")
+// 	if err != nil {
+// 		suite.T().Errorf("GET requested failed")
+// 	}
+
+// 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
+
+// 	reqBody := map[string]interface{}{
+// 		"lastId": 12,
+// 		"UserID": 2,
+// 		"Comment": "Fixed the response code (hopefully)"
+// 		"ResponseCode": 403,
+// 		"EnhancedCode": "5265126",
+// 		"Regex":        "1212121",
+// 		"Priority":     0,
+// 		"Description":  "RFC5321 Service not available",
+// 		"BounceAction": "TRY IT AGAIN",
+// 	}
+// 	preSend, err := json.Marshal(reqBody)
+// 	if err != nil {
+// 		suite.T().Errorf("Formatting of JSON incorrect")
+// 	}
+
+// 	resp, err = http.Post("http://localhost:4000/change_logs", "application/json", bytes.NewBuffer(preSend))
+// 	if err != nil {
+// 		suite.T().Errorf("POST to route failed")
+// 	}
+
+// 	assert.NotNil(suite.T(), resp)
+// 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+
+// 	resp, err = http.Get("http://localhost:4000/change_logs/507")
+// 	if err != nil {
+// 		suite.T().Errorf("GET requested failed")
+// 	}
+
+// 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 // }
 
 func (suite *ChangelogSuite) TearDownTest() {
