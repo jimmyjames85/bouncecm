@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -302,6 +303,13 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 
 		if !ok {
 			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, nil)
+			if err != nil {
+				if strings.HasSuffix(err.Error(), "no rows in result set") {
+					log.Println(err)
+					http.Error(w, err.Error(), http.StatusNotFound)
+					return
+				}
+			}
 		} else {
 
 			limitAsInt, err := strconv.Atoi(r.FormValue("limit"))

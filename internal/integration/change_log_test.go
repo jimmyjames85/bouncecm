@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -67,69 +69,59 @@ func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
 
 // Uncomment after changelog-CR is merged
 //
-// func (suite *ChangelogSuite) TestGetSingleChangelogHandler() {
-// 	resp, err := http.Get("http://localhost:3000/change_logs/300")
-// 	assert.Nil(t, err)
-// 	assert.NotNil(t, resp)
-// }
+func (suite *ChangelogSuite) TestGetSingleChangelogHandler() {
+	resp, err := http.Get("http://localhost:4000/change_logs/400")
+	if err != nil {
+		suite.T().Errorf("Request failed")
+	}
 
-// func TestChangeLogsGetHandler(t *testing.T) {
-// 	rr := httptest.NewRecorder()
-// 	dbc := db.Client{Conn: Database}
-// 	srv := sgbouncewizard.Server{DBClient: &dbc}
-// 	handler := http.HandlerFunc(srv.GetChangelog) // Change to GetAllChangelogEntries after changelog-CR is merged
-// 	req, err := http.NewRequest("GET", "/changelogs", nil)
+	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+	resp, err = http.Get("http://localhost:4000/change_logs/204")
+	if err != nil {
+		suite.T().Errorf("Handler returned wrong status code: got %v want %v", resp.StatusCode, http.StatusOK)
+	}
+	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+}
 
-// 	handler.ServeHTTP(rr, req)
+func (suite *ChangelogSuite) TestPostChangelogRoute() {
+	resp, err := http.Get("http://localhost:4000/change_logs/604")
+	if err != nil {
+		suite.T().Errorf("GET requested failed")
+	}
 
-// 	if status := rr.Code; status != http.StatusOK {
-// 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-// 	}
-// }
+	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
-// func (suite *ChangelogSuite) TestPostChangelogRoute() {
-// 	resp, err := http.Get("http://localhost:4000/change_logs/604")
-// 	if err != nil {
-// 		suite.T().Errorf("GET requested failed")
-// 	}
+	reqBody := map[string]interface{}{
+		"UserID":       2,
+		"Comment":      "Fixed the response code (hopefully)",
+		"ResponseCode": 403,
+		"EnhancedCode": "5265126",
+		"Regex":        "1212121",
+		"Priority":     0,
+		"Description":  "RFC5321 Service not available",
+		"BounceAction": "TRY IT AGAIN",
+	}
+	preSend, err := json.Marshal(reqBody)
+	if err != nil {
+		suite.T().Errorf("Formatting of JSON incorrect")
+	}
 
-// 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
+	resp, err = http.Post("http://localhost:4000/change_logs", "application/json", bytes.NewBuffer(preSend))
+	if err != nil {
+		suite.T().Errorf("POST to route failed")
+	}
 
-// 	reqBody := map[string]interface{}{
-// 		"lastId": 12,
-// 		"UserID": 2,
-// 		"Comment": "Fixed the response code (hopefully)"
-// 		"ResponseCode": 403,
-// 		"EnhancedCode": "5265126",
-// 		"Regex":        "1212121",
-// 		"Priority":     0,
-// 		"Description":  "RFC5321 Service not available",
-// 		"BounceAction": "TRY IT AGAIN",
-// 	}
-// 	preSend, err := json.Marshal(reqBody)
-// 	if err != nil {
-// 		suite.T().Errorf("Formatting of JSON incorrect")
-// 	}
+	assert.NotNil(suite.T(), resp)
+	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-// 	resp, err = http.Post("http://localhost:4000/change_logs", "application/json", bytes.NewBuffer(preSend))
-// 	if err != nil {
-// 		suite.T().Errorf("POST to route failed")
-// 	}
+	resp, err = http.Get("http://localhost:4000/change_logs/204")
+	if err != nil {
+		suite.T().Errorf("GET requested failed")
+	}
 
-// 	assert.NotNil(suite.T(), resp)
-// 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
-
-// 	resp, err = http.Get("http://localhost:4000/change_logs/507")
-// 	if err != nil {
-// 		suite.T().Errorf("GET requested failed")
-// 	}
-
-// 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
-// }
+	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+}
 
 func (suite *ChangelogSuite) TearDownTest() {
 	_, err := Database.Exec(`TRUNCATE TABLE changelog`)
