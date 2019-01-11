@@ -21,7 +21,12 @@
   version = "v3.3.3"
 
 [[projects]]
-  digest = "1:e692d16fdfbddb94e9e4886aaf6c08bdbae5cb4ac80651445de9181b371c6e46"
+  name = "github.com/go-chi/cors"
+  packages = ["."]
+  revision = "dba6525398619dead495962a916728e7ee2ca322"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
   pruneopts = ""

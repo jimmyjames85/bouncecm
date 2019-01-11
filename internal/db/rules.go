@@ -54,12 +54,19 @@ func (c *Client) GetSingleRule(id int) (*models.BounceRule, error) {
 	return &br, nil
 }
 
-func (c *Client) CreateRule(rule *models.BounceRule) error {
-	_, err := c.Conn.Exec("INSERT INTO bounce_rule(response_code,enhanced_code,regex,priority,description,bounce_action) VALUES(?,?,?,?,?,?)", rule.ResponseCode, rule.EnhancedCode, rule.Regex, rule.Priority, rule.Description, rule.BounceAction)
+func (c *Client) CreateRule(rule *models.BounceRule) (int, error) {
+	id, err := c.Conn.Exec("INSERT INTO bounce_rule(response_code,enhanced_code,regex,priority,description,bounce_action) VALUES(?,?,?,?,?,?)", rule.ResponseCode, rule.EnhancedCode, rule.Regex, rule.Priority, rule.Description, rule.BounceAction)
 	if err != nil {
-		return errors.Wrap(err, "CreateRule")
+		return 0, errors.Wrap(err, "CreateRule")
 	}
-	return nil
+
+	value , err := id.LastInsertId()
+
+	if err != nil {
+		return 0, errors.Wrap(err, "CreateRule LastInserID")
+	}
+
+	return int(value), nil
 }
 
 func (c *Client) UpdateRule(newRule *models.BounceRule) error {

@@ -7,15 +7,23 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+<<<<<<< HEAD
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+=======
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
+>>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	"github.com/jimmyjames85/bouncecm/internal/config"
 	"github.com/jimmyjames85/bouncecm/internal/db"
 	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type TempJsonObject map[string]interface{}
 
 type Server struct {
 	DBClient *db.Client
@@ -75,14 +83,18 @@ func (srv *Server) generateHash(pwd []byte) (string, error) {
 	return result, nil
 }
 
+<<<<<<< HEAD
 func (srv *Server) verifyPassword(hashed string, plain []byte) bool {
+=======
+func (srv *Server) verifyPassword(hashed string, plain []byte) error {
+>>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	byteHash := []byte(hashed)
 
 	err := bcrypt.CompareHashAndPassword(byteHash, plain)
 	if err != nil {
-		return false
+		return err
 	}
-	return true
+	return nil
 }
 
 // CheckUser - wrapper function to auth user
@@ -105,7 +117,14 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(user) == 0 {
+		passError := errors.New("User not found")
+		http.Error(w, passError.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	result := models.UserObject{}
+<<<<<<< HEAD
 	if srv.verifyPassword(user[0].Hash, []byte(c.Password)) {
 		result.ID = user[0].ID
 		result.FirstName = user[0].FirstName
@@ -114,25 +133,38 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	} else {
 		passError := errors.New("verifyPassword Failed")
 		http.Error(w, passError.Error(), http.StatusBadRequest)
+=======
+	err = srv.verifyPassword(user[0].Hash, []byte(c.Password))
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+>>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 		return
 	}
+	result.ID = user[0].ID
+	result.FirstName = user[0].FirstName
+	result.LastName = user[0].LastName
+	result.Role = user[0].Role
 
 	data, err := json.Marshal(result)
-
+	log.Println("No user")
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
 
+<<<<<<< HEAD
 // ListRules - wrapper to grab all rules
 func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
+=======
+func (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
+>>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	rules, err := srv.DBClient.GetAllRules()
 
 	if err != nil {
@@ -149,13 +181,16 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
 
+<<<<<<< HEAD
 func (srv *Server) GetRuleRoute(w http.ResponseWriter, r *http.Request) {
+=======
+func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
+>>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	rule, ok := r.Context().Value("rule").(*models.BounceRule)
 
 	if !ok {
@@ -173,7 +208,6 @@ func (srv *Server) GetRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
@@ -190,21 +224,31 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := srv.DBClient.DeleteRule(toDelete.ID)
+<<<<<<< HEAD
 	log.Println(err)
+=======
+
+>>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
+<<<<<<< HEAD
 func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var rule models.BounceRule
+=======
+func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
+
+	decoder := json.NewDecoder(r.Body)
+	var rule models.ChangelogEntry
+>>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
 
 	err := decoder.Decode(&rule)
 
@@ -214,7 +258,13 @@ func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = srv.DBClient.CreateRule(&rule)
+	LastInsertedID, err := srv.DBClient.CreateRule(&rule.BounceRule)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = srv.DBClient.CreateChangeLogEntry(LastInsertedID, &rule)
 
 	if err != nil {
 		log.Println(err)
@@ -222,14 +272,22 @@ func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	newRuleID, err := json.Marshal(TempJsonObject{"id": LastInsertedID})
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(newRuleID)
 }
 
 func (srv *Server) UpdateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var newRule models.BounceRule
+	var newRule models.ChangelogEntry
 	err := decoder.Decode(&newRule)
 
 	if err != nil {
@@ -238,21 +296,7 @@ func (srv *Server) UpdateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = srv.DBClient.UpdateRule(&newRule)
-
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-}
-
-func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
-	rules, err := srv.DBClient.GetAllChangelogEntries()
+	err = srv.DBClient.UpdateRule(&newRule.BounceRule)
 
 	if err != nil {
 		log.Println(err)
@@ -260,7 +304,83 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := json.Marshal(rules)
+	err = srv.DBClient.CreateChangeLogEntry(newRule.ID, &newRule)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
+
+<<<<<<< HEAD
+func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
+	rules, err := srv.DBClient.GetAllChangelogEntries()
+=======
+func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var changelog []models.ChangelogEntry
+
+		bounce_id := chi.URLParam(r, "bounce_id")
+
+		bouncd_idInt, err := strconv.Atoi(bounce_id)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		queryParams := r.URL.Query()
+
+		limit, ok := queryParams["limit"]
+
+		if len(limit) > 1 {
+			paramError := errors.New("Duplicate Parameters")
+			http.Error(w, paramError.Error(), http.StatusBadRequest)
+		}
+
+		if !ok {
+			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, nil)
+		} else {
+
+			limitAsInt, err := strconv.Atoi(r.FormValue("limit"))			
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, &limitAsInt)
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+
+		}
+
+		ctx := context.WithValue(r.Context(), "changelog", changelog)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (srv *Server) GetChangeLogEntriesRoute(w http.ResponseWriter, r *http.Request) {
+	changelog, ok := r.Context().Value("changelog").([]models.ChangelogEntry)
+
+	if !ok {
+		log.Println("ContextValue of rule in GetChangeLogEntriesRoute: " + strconv.FormatBool(ok))
+		paramError := errors.New("Route Parameters")
+		http.Error(w, paramError.Error(), http.StatusBadRequest)
+		return
+	}
+
+	data, err := json.Marshal(changelog)
 
 	if err != nil {
 		log.Println(err)
@@ -268,10 +388,56 @@ func (srv *Server) GetChangelog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request) {
+	changelog, err := srv.DBClient.GetAllChangelogEntries()
+>>>>>>> 0934f0af073e6de1eb216e951d866688a49642bc
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	data, err := json.Marshal(changelog)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+// createChangeLogEntryRoute will only be used to seed the change log databse
+// with all current rules
+func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var changelog models.ChangelogEntry
+
+	err := decoder.Decode(&changelog)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = srv.DBClient.CreateChangeLogEntry(changelog.ID, &changelog)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (srv *Server) Serve(Port int) {
@@ -282,6 +448,16 @@ func (srv *Server) Serve(Port int) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	})
+
+	r.Use(cors.Handler)
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome: Routes \n\n /bounce_rules/{id} - Get Post Put Delete \n\n /bounce_rules - Get \n\n /change_log - Get \n\n /change_log/{id} - Get"))
 	})
@@ -290,8 +466,15 @@ func (srv *Server) Serve(Port int) {
 		r.Post("/", srv.CheckUser)
 	})
 
-	r.Route("/changelogs", func(r chi.Router) {
-		r.Get("/", srv.GetChangelog)
+	r.Route("/change_logs", func(r chi.Router) {
+		r.Get("/", srv.GetAllChangelogEntries)
+		r.Post("/", srv.createChangeLogEntryRoute)
+
+		r.Route("/{bounce_id}", func(r chi.Router) {
+			r.Use(srv.ChangelogContext)
+			r.Get("/", srv.GetChangeLogEntriesRoute)
+
+		})
 	})
 
 	r.Route("/bounce_rules", func(r chi.Router) {
