@@ -180,11 +180,15 @@ func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
 func (suite *BounceRuleSuite) TearDownTest() {
 	_, err := Database.Exec(`TRUNCATE TABLE bounce_rule`)
 	assert.NoError(suite.T(), err, "Failed to tear down database")
+	_, err = Database.Exec(`TRUNCATE TABLE changelog`)
+	assert.NoError(suite.T(), err, "Failed to tear down database")
 }
 
 func (suite *BounceRuleSuite) TearDownSuite() {
 	_, err := Database.Exec(`DROP TABLE IF EXISTS bounce_rule`)
-	assert.NoError(suite.T(), err, "Failed to teardown suite")
+	assert.NoError(suite.T(), err, "Failed to tear down suite")
+	_, err = Database.Exec(`DROP TABLE IF EXISTS changelog`)
+	assert.NoError(suite.T(), err, "Failed to tear down suite")
 }
 
 func TestBounceRuleSuite(t *testing.T) {
