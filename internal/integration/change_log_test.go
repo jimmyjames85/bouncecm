@@ -35,32 +35,22 @@ func (suite *ChangelogSuite) SetupTest() {
 			bounce_action varchar(255) NOT NULL,
 			PRIMARY KEY (created_at)
 	  	) ENGINE=InnoDB DEFAULT CHARSET=latin1;`)
-	if err != nil {
-		suite.T().Fatalf("Failed to setup for test\nError: %v", err)
-	}
+	assert.NoError(suite.T(), err, "Failed to set up change_log table for testing")
 
 	mysql.RegisterLocalFile("testdata/changelog_test.csv")
 
 	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "testdata/changelog_test.csv" + "' INTO TABLE changelog FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
-	if err != nil {
-		suite.T().Fatalf("Failed to load data from file\nError: %v", err)
-	}
+	assert.NoError(suite.T(), err, "Failed to get data from file")
 	_, err = res.RowsAffected()
-	if err != nil {
-		suite.T().Fatalf("Failed to get inserted rows\nError: %v", err)
-	}
+	assert.NoError(suite.T(), err, "Failed to get number of rows affected")
 }
 
 func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
 	req, err := http.NewRequest("GET", "http://localhost:4000/change_logs", nil)
-	if err != nil {
-		suite.T().Errorf("Error in forming request")
-	}
+	assert.NoError(suite.T(), err, "Failed to form GET request")
 
 	res, err := suite.client.Do(req)
-	if err != nil {
-		suite.T().Errorf("GET request was not able to be completed\nError: %v", err)
-	}
+	assert.NoError(suite.T(), err, "Failed to send GET request")
 	if status := res.StatusCode; status != http.StatusOK {
 		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
@@ -71,24 +61,18 @@ func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
 //
 func (suite *ChangelogSuite) TestGetSingleChangelogHandler() {
 	resp, err := http.Get("http://localhost:4000/change_logs/400")
-	if err != nil {
-		suite.T().Errorf("Request failed")
-	}
+	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
 	resp, err = http.Get("http://localhost:4000/change_logs/204")
-	if err != nil {
-		suite.T().Errorf("Handler returned wrong status code: got %v want %v", resp.StatusCode, http.StatusOK)
-	}
+	assert.NoError(suite.T(), err, "Failed to send GET request")
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 }
 
 func (suite *ChangelogSuite) TestPostChangelogRoute() {
 	resp, err := http.Get("http://localhost:4000/change_logs/604")
-	if err != nil {
-		suite.T().Errorf("GET requested failed")
-	}
+	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
@@ -103,38 +87,28 @@ func (suite *ChangelogSuite) TestPostChangelogRoute() {
 		"BounceAction": "TRY IT AGAIN",
 	}
 	preSend, err := json.Marshal(reqBody)
-	if err != nil {
-		suite.T().Errorf("Formatting of JSON incorrect")
-	}
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
 	resp, err = http.Post("http://localhost:4000/change_logs", "application/json", bytes.NewBuffer(preSend))
-	if err != nil {
-		suite.T().Errorf("POST to route failed")
-	}
+	assert.NoError(suite.T(), err, "Failed to send POST request")
 
 	assert.NotNil(suite.T(), resp)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
 	resp, err = http.Get("http://localhost:4000/change_logs/204")
-	if err != nil {
-		suite.T().Errorf("GET requested failed")
-	}
+	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 }
 
 func (suite *ChangelogSuite) TearDownTest() {
 	_, err := Database.Exec(`TRUNCATE TABLE changelog`)
-	if err != nil {
-		suite.T().Fatalf("Failed to tear down test data\nError: %v", err)
-	}
+	assert.NoError(suite.T(), err, "Failed to tear down test data")
 }
 
 func (suite *ChangelogSuite) TearDownSuite() {
 	_, err := Database.Exec(`DROP TABLE IF EXISTS changelog`)
-	if err != nil {
-		suite.T().Fatalf("Failed to remove test table from database\nError: %v", err)
-	}
+	assert.NoError(suite.T(), err, "Failed to tear down suite")
 }
 
 func TestChangelogSuite(t *testing.T) {

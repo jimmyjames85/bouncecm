@@ -1,8 +1,6 @@
 package db
 
 import (
-	"log"
-
 	"github.com/pkg/errors"
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
@@ -18,8 +16,6 @@ func (c *Client) GetUserByEmail(email string) ([]*models.User, error) {
 	}
 
 	result := []*models.User{}
-
-	log.Println("get data")
 
 	for rows.Next() {
 		u := models.User{}
