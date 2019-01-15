@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -94,6 +95,16 @@ func (suite *BounceRuleSuite) TestGetSingleBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 	// assert contents
+
+	var br models.BounceRule
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	err = json.Unmarshal(body, &br)
+
+	assert.Equal(suite.T(), 180, br.ID)
+	assert.Equal(suite.T(), 501, br.ResponseCode)
 }
 
 func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
@@ -102,15 +113,17 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
-	reqBody := map[string]interface{}{
-		"ResponseCode": 421,
-		"EnhancedCode": "5235123",
-		"Regex":        "1111111",
-		"Priority":     0,
-		"Description":  "RFC5321 Service not available",
-		"BounceAction": "retry",
+	reqBody := models.BounceRule{
+		ResponseCode: 421,
+		EnhancedCode: "5235123",
+		Regex:        "1111132",
+		Priority:     0,
+		Description:  "RFC5321 Service not available",
+		BounceAction: "try it again homie",
 	}
+
 	preSend, err := json.Marshal(reqBody)
+
 	assert.NoError(suite.T(), err, "Failed to marshal JSON")
 
 	resp, err = http.Post("http://localhost:4000/bounce_rules", "application/json", bytes.NewBuffer(preSend))
@@ -123,6 +136,15 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+
+	var br *models.BounceRule
+
+	body, err := ioutil.ReadAll(resp.Body)
+	err = json.Unmarshal(body, &br)
+
+	assert.Equal(suite.T(), 507, br.ID)
+	assert.Equal(suite.T(), 421, br.ResponseCode)
+
 }
 
 func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
@@ -149,11 +171,19 @@ func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
 		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
 
+	req, err = http.NewRequest("GET", "http://localhost:4000/bounce_rules/200", nil)
+	assert.NoError(suite.T(), err, "Failed to form GET request")
+
+	res, err = suite.client.Do(req)
+	if status := res.StatusCode; status != http.StatusNotFound {
+		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
+	}
+
 }
 
 func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
 	reqBody := models.BounceRule{
-		ID: 800, ResponseCode: 403, EnhancedCode: "111", Regex: "asfba", Priority: 0, Description: "Test Update", BounceAction: "Do Nothing",
+		ID: 180, ResponseCode: 403, EnhancedCode: "111", Regex: "asfba", Priority: 0, Description: "Test Update", BounceAction: "Do Nothing",
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 
@@ -174,6 +204,21 @@ func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
 	if status := res.StatusCode; status != http.StatusOK {
 		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
+
+	resp, err := http.Get("http://localhost:4000/bounce_rules/180")
+	assert.NoError(suite.T(), err, "Failed to send GET request")
+
+	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+
+	var br *models.BounceRule
+
+	body, err := ioutil.ReadAll(resp.Body)
+	err = json.Unmarshal(body, &br)
+
+	assert.Equal(suite.T(), 180, br.ID)
+	assert.Equal(suite.T(), 403, br.ResponseCode)
+	assert.NotEqual(suite.T(), "no_action", br.BounceAction)
+	assert.Equal(suite.T(), "Do Nothing", br.BounceAction)
 
 }
 
