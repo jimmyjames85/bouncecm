@@ -88,19 +88,19 @@ This will run all of the tests within the directory, which include:
 
 ### Run tests for the bounce_rules routes
 
-`go test -v bounce_rule_test.go`
+`go test -v main_test.go bounce_rule_test.go`
 
 This will check the GET, POST, PUT, and DELETE bounce_rule routes
 
 ### Run tests for the change_logs routes
 
-`go test -v change_log_test.go`
+`go test -v main_test.go change_log_test.go`
 
 This will check the GET, POST, PUT, and DELETE change_log routes
 
 ### Run tests for the database
 
-`go test -v database_test.go`
+`go test -v main_test.go database_test.go`
 
 This will check for MySQL commands working with the bounce_rule schema
 
