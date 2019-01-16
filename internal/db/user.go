@@ -30,8 +30,8 @@ func (c *Client) GetUserByEmail(email string) ([]*models.User, error) {
 	}
 
 	err = rows.Err()
-    if err != nil {
-        return nil, errors.Wrap(err, "GetUserByEmail Row Error")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetUserByEmail Row Error")
 	}
 
 	return result, nil

@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -138,7 +140,8 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
+// ListRules - wrapper to grab all rules
+func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	rules, err := srv.DBClient.GetAllRules()
 
 	if err != nil {
@@ -160,7 +163,7 @@ func (srv *Server) getAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) GetRuleRoute(w http.ResponseWriter, r *http.Request) {
 	rule, ok := r.Context().Value("rule").(*models.BounceRule)
 
 	if !ok {
@@ -183,7 +186,7 @@ func (srv *Server) getRuleRoute(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	toDelete, ok := r.Context().Value("rule").(*models.BounceRule)
 
 	if !ok {
@@ -194,7 +197,6 @@ func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := srv.DBClient.DeleteRule(toDelete.ID)
-
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -205,7 +207,7 @@ func (srv *Server) deleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	var rule models.ChangelogEntry
@@ -245,7 +247,7 @@ func (srv *Server) createRuleRoute(w http.ResponseWriter, r *http.Request) {
 	w.Write(newRuleID)
 }
 
-func (srv *Server) updateRuleRoute(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) UpdateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var newRule models.ChangelogEntry
 	err := decoder.Decode(&newRule)
@@ -301,9 +303,16 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 
 		if !ok {
 			changelog, err = srv.DBClient.GetChangeLogEntries(bouncd_idInt, nil)
+			if err != nil {
+				if strings.HasSuffix(err.Error(), "no rows in result set") {
+					log.Println(err)
+					http.Error(w, err.Error(), http.StatusNotFound)
+					return
+				}
+			}
 		} else {
 
-			limitAsInt, err := strconv.Atoi(r.FormValue("limit"))			
+			limitAsInt, err := strconv.Atoi(r.FormValue("limit"))
 
 			if err != nil {
 				log.Println(err)
@@ -433,14 +442,14 @@ func (srv *Server) Serve(Port int) {
 	})
 
 	r.Route("/bounce_rules", func(r chi.Router) {
-		r.Get("/", srv.getAllRulesRoute)
-		r.Post("/", srv.createRuleRoute)
+		r.Get("/", srv.GetAllRulesRoute)
+		r.Post("/", srv.CreateRuleRoute)
 
 		r.Route("/{bounce_id}", func(r chi.Router) {
 			r.Use(srv.RuleContext)
-			r.Get("/", srv.getRuleRoute)
-			r.Delete("/", srv.deleteRuleRoute)
-			r.Put("/", srv.updateRuleRoute)
+			r.Get("/", srv.GetRuleRoute)
+			r.Delete("/", srv.DeleteRuleRoute)
+			r.Put("/", srv.UpdateRuleRoute)
 		})
 	})
 

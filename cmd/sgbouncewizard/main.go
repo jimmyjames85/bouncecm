@@ -1,9 +1,10 @@
 package main
+
 import (
 	"log"
-	"github.com/jimmyjames85/bouncecm/internal/sgbouncewizard"
-	"github.com/jimmyjames85/bouncecm/internal/config"
 
+	"github.com/jimmyjames85/bouncecm/internal/config"
+	"github.com/jimmyjames85/bouncecm/internal/sgbouncewizard"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error reading config", err)
 	}
-	
+
 	srv, err := sgbouncewizard.NewServer(cfg)
 
 	if err != nil {
