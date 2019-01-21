@@ -29,6 +29,8 @@ services:
     volumes:
       - .:/go/src/github.com/jimmyjames85/bouncecm
     command: go run "/go/src/github.com/jimmyjames85/bouncecm/cmd/sgbouncewizard/main.go"
+    ports:
+      - "3000:3000"
     depends_on:
       database:
         condition: service_healthy

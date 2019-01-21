@@ -3,7 +3,6 @@ package integration
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -97,11 +96,10 @@ func (suite *BounceRuleSuite) TestGetSingleBounceRuleHandler() {
 	// assert contents
 
 	var br models.BounceRule
-
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-
-	err = json.Unmarshal(body, &br)
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&br)
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
 	assert.Equal(suite.T(), 180, br.ID)
 	assert.Equal(suite.T(), 501, br.ResponseCode)
@@ -137,10 +135,11 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var br *models.BounceRule
-
-	body, err := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(body, &br)
+	var br models.BounceRule
+	defer resp.Body.Close()
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&br)
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
 	assert.Equal(suite.T(), 507, br.ID)
 	assert.Equal(suite.T(), 421, br.ResponseCode)
@@ -210,10 +209,11 @@ func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var br *models.BounceRule
-
-	body, err := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(body, &br)
+	var br models.BounceRule
+	defer resp.Body.Close()
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&br)
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
 	assert.Equal(suite.T(), 180, br.ID)
 	assert.Equal(suite.T(), 403, br.ResponseCode)
