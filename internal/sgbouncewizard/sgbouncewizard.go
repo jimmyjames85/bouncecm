@@ -387,7 +387,6 @@ func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Requ
 	var changelog models.ChangelogEntry
 
 	err := decoder.Decode(&changelog)
-	log.Println(changelog.BounceRule.ID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
