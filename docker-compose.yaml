@@ -21,7 +21,7 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
+      timeout: 50s
       retries: 10
   bouncecm:
     image: golang
@@ -38,6 +38,8 @@ services:
       - DB_USER=root
       - DB_PASS=root
       - DB_NAME=drop_rules
+    ports:
+      - "3000:3000"
   test_database:
     image: mysql
     container_name: droprules.database.test
