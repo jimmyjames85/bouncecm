@@ -74,7 +74,7 @@ func (suite *ChangelogSuite) TestGetSingleChangelogHandler() {
 	err = decoder.Decode(&changelogs)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
-	assert.Equal(suite.T(), 3, len(changelogs))
+	assert.Len(suite.T(), changelogs, 3)
 	assert.Equal(suite.T(), 204, changelogs[0].ID)
 	assert.Equal(suite.T(), "reverted response code and updated enhanced", changelogs[0].Comment)
 	assert.Equal(suite.T(), "updated response code", changelogs[1].Comment)
@@ -121,7 +121,7 @@ func (suite *ChangelogSuite) TestPostChangelogRoute() {
 	err = decoder.Decode(&changelogs)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
-	assert.Equal(suite.T(), 4, len(changelogs))
+	assert.Len(suite.T(), changelogs, 4)
 	assert.Equal(suite.T(), 204, changelogs[0].ID)
 	assert.Equal(suite.T(), "Fixed the response code (hopefully)", changelogs[0].Comment)
 	assert.Equal(suite.T(), 520, changelogs[1].ResponseCode)

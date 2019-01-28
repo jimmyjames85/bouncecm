@@ -95,14 +95,14 @@ func (suite *BounceRuleSuite) TestGetSingleBounceRuleHandler() {
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 	// assert contents
 
-	var br models.BounceRule
+	var want models.BounceRule
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&br)
+	err = decoder.Decode(&want)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
-	assert.Equal(suite.T(), 180, br.ID)
-	assert.Equal(suite.T(), 501, br.ResponseCode)
+	assert.Equal(suite.T(), 180, want.ID)
+	assert.Equal(suite.T(), 501, want.ResponseCode)
 }
 
 func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
@@ -111,7 +111,8 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
-	reqBody := models.BounceRule{
+	have := models.BounceRule{
+		ID:           507,
 		ResponseCode: 421,
 		EnhancedCode: "5235123",
 		Regex:        "1111132",
@@ -120,7 +121,7 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 		BounceAction: "try it again homie",
 	}
 
-	preSend, err := json.Marshal(reqBody)
+	preSend, err := json.Marshal(have)
 
 	assert.NoError(suite.T(), err, "Failed to marshal JSON")
 
@@ -135,14 +136,13 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var br models.BounceRule
+	var want models.BounceRule
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&br)
+	err = decoder.Decode(&want)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
-	assert.Equal(suite.T(), 507, br.ID)
-	assert.Equal(suite.T(), 421, br.ResponseCode)
+	assert.Equal(suite.T(), have, want)
 
 }
 
@@ -181,10 +181,10 @@ func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
 }
 
 func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
-	reqBody := models.BounceRule{
+	have := models.BounceRule{
 		ID: 180, ResponseCode: 403, EnhancedCode: "111", Regex: "asfba", Priority: 0, Description: "Test Update", BounceAction: "Do Nothing",
 	}
-	jsonBody, _ := json.Marshal(reqBody)
+	jsonBody, _ := json.Marshal(have)
 
 	req, err := http.NewRequest("PUT", "http://localhost:4000/bounce_rules/800", bytes.NewBuffer(jsonBody))
 	assert.NoError(suite.T(), err, "Failed to form PUT request")
@@ -209,16 +209,13 @@ func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var br models.BounceRule
+	var want models.BounceRule
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&br)
+	err = decoder.Decode(&want)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
-	assert.Equal(suite.T(), 180, br.ID)
-	assert.Equal(suite.T(), 403, br.ResponseCode)
-	assert.NotEqual(suite.T(), "no_action", br.BounceAction)
-	assert.Equal(suite.T(), "Do Nothing", br.BounceAction)
+	assert.Equal(suite.T(), have, want)
 
 }
 

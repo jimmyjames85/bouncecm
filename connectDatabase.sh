@@ -5,23 +5,23 @@ commands=""
 table=""
 if [ $# -eq 0 ]
     then
-        echo "\nConnecting to dev MySQL docker container: droprules.database.dev\n"
-        container="droprules.database.dev"
+        echo "\nConnecting to dev MySQL docker container: bouncecm_database_1\n"
+        container="bouncecm_database_1"
 fi
 
 if [ "$1" == "show" ]; then
-    echo "\nConnecting to dev MySQL docker container: droprules.database.dev\n"
-    container="droprules.database.dev"
-    echo "\nGrabbing tables from droprules.database.dev\n"
+    echo "\nConnecting to dev MySQL docker container: bouncecm_database_1\n"
+    container="bouncecm_database_1"
+    echo "\nGrabbing tables from bouncecm_database_1\n"
     commands="-e use drop_rules; show tables;"
 
 elif [ "$1" == "dev" ]; then
-    echo "\nConnecting to dev MySQL docker container: droprules.database.dev\n"
-    container="droprules.database.dev"
+    echo "\nConnecting to dev MySQL docker container: bouncecm_database_1v\n"
+    container="bouncecm_database_1"
     table="drop_rules"
 elif [ "$1" == "test" ];then
-    echo "\nConnecting to test MySQL docker container: droprules.database.test\n"
-    container="droprules.database.test"
+    echo "\nConnecting to test MySQL docker container: bouncecm_test_database_1\n"
+    container="bouncecm_test_database_1"
     table="test_rules"
 fi
 
