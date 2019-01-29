@@ -5,7 +5,6 @@ import (
 	"math"
 	"regexp"
 	"time"
-	"fmt"
 	"github.com/pkg/errors"
 
 	// Blank import required for mysql driver
