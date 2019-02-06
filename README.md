@@ -49,17 +49,17 @@ Get:
 
 ```bash
 Post:
-`curl -X POST -H 'Content-Type: application/json' -d '{"response_code":123, "enhanced_code":"1.2.4", "regex":"testing", "priority":123, "description":"This is for testing", "bounce_action":"AUTOINCREMETTESTING"}' localhost:3000/ bounce_rules/`
+curl -X POST -H 'Content-Type: application/json' -d '{"response_code":123, "enhanced_code":"1.2.4", "regex":"testing", "priority":123, "description":"This is for testing", "bounce_action":"AUTOINCREMETTESTING"}' localhost:3000/ bounce_rules/
 ```
 
 ```bash
 Update:
-`curl -X PUT -H "Content-Type: application/json" -d '{"id":508, "response_code":123, "enhanced_code":"1.2.4", "regex":"testing", "priority":123, "description":"This is for testing", "bounce_action":"PUTTESTING"}' localhost:3000/bounce_rules/508`
+curl -X PUT -H "Content-Type: application/json" -d '{"id":505,"response_code":123,"enhanced_code":"1.2.4","regex":"testing","priority":123,"description":"This is for testing","bounce_action":"AUTOINCREMETTESTING","user_id":0,"comment":"something"}' localhost:3000/bounce_rules/505
 ```
 
 ```bash
 Delete:
-`curl -X DELETE localhost:3000/bounce_rules/508`
+curl -X DELETE -H "Content-Type: application/json" -d '{"id":354, "user_id":1, "created_at":999999, "comment":"DEletetesting",  "response_code":123, "enhanced_code":"1.2.4", "regex":"testing", "priority":123, "description":"This is for testing", "bounce_action":"PUTTESTING"}' localhost:3000/bounce_rules/354
 ```
 
 ## Testing
