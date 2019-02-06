@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `changelog` (
   `priority` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `description` varchar(255) DEFAULT NULL,
   `bounce_action` varchar(255) NOT NULL,
-  `operation` varchar(255) NOT NULL,
+  `operation` ENUM('Create', 'Delete', 'Update') NOT NULL,  
   PRIMARY KEY (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
