@@ -47,7 +47,11 @@ func (c *Client) GetAllRules() ([]models.BounceRule, error) {
 
 func (c *Client) GetSingleRule(id int) (*models.BounceRule, error) {
 	var br models.BounceRule
-	err := c.Conn.QueryRow("SELECT * From bounce_rule WHERE id = ?", id).Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &br.Description, &br.BounceAction)
+	var description sql.NullString
+	err := c.Conn.QueryRow("SELECT * From bounce_rule WHERE id = ?", id).Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description, &br.BounceAction)
+	if description.Valid {
+		br.Description = description.String
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "GetSingleRule")
 	}
