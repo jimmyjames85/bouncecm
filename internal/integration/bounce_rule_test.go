@@ -111,7 +111,7 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
-	have := models.BounceRule{
+	want := models.BounceRule{
 		ID:           507,
 		ResponseCode: 421,
 		EnhancedCode: "5235123",
@@ -121,7 +121,7 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 		BounceAction: "try it again homie",
 	}
 
-	preSend, err := json.Marshal(have)
+	preSend, err := json.Marshal(want)
 
 	assert.NoError(suite.T(), err, "Failed to marshal JSON")
 
@@ -136,13 +136,13 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var want models.BounceRule
+	var have models.BounceRule
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&want)
+	err = decoder.Decode(&have)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
-	assert.Equal(suite.T(), have, want)
+	assert.Equal(suite.T(), want, have)
 
 }
 
@@ -181,10 +181,10 @@ func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
 }
 
 func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
-	have := models.BounceRule{
+	want := models.BounceRule{
 		ID: 180, ResponseCode: 403, EnhancedCode: "111", Regex: "asfba", Priority: 0, Description: "Test Update", BounceAction: "Do Nothing",
 	}
-	jsonBody, _ := json.Marshal(have)
+	jsonBody, _ := json.Marshal(want)
 
 	req, err := http.NewRequest("PUT", "http://localhost:4000/bounce_rules/800", bytes.NewBuffer(jsonBody))
 	assert.NoError(suite.T(), err, "Failed to form PUT request")
@@ -209,13 +209,13 @@ func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var want models.BounceRule
+	var have models.BounceRule
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&want)
+	err = decoder.Decode(&have)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
-	assert.Equal(suite.T(), have, want)
+	assert.Equal(suite.T(), want, have)
 
 }
 
