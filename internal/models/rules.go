@@ -16,7 +16,5 @@ type ChangelogEntry struct {
 	UserID    int    `json:"user_id"`
 	CreatedAt int    `json:"created_at"`
 	Comment   string `json:"comment"`
-	Operation string    `json:"operation"`
+	Operation string `json:"operation"`
 }
-
-

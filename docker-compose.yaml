@@ -2,7 +2,6 @@ version: "2.1"
 services:
   database:
     image: mysql
-    container_name: droprules.database.dev
     command: mysqld --user=root
     volumes:
       - ./drop_rules.sql:/docker-entrypoint-initdb.d/drop_rules.sql
@@ -25,10 +24,11 @@ services:
       retries: 10
   bouncecm:
     image: golang
-    container_name: bouncecm_go
     volumes:
       - .:/go/src/github.com/jimmyjames85/bouncecm
     command: go run "/go/src/github.com/jimmyjames85/bouncecm/cmd/sgbouncewizard/main.go"
+    ports:
+      - "3000:3000"
     depends_on:
       database:
         condition: service_healthy
@@ -42,7 +42,6 @@ services:
       - "3000:3000"
   test_database:
     image: mysql
-    container_name: droprules.database.test
     command: mysqld --user=root --local-infile
     ports:
       - "33062:3306"
@@ -59,7 +58,6 @@ services:
       retries: 10
   integration:
     image: golang
-    container_name: bouncecm_test
     volumes:
       - .:/go/src/github.com/jimmyjames85/bouncecm
     depends_on:

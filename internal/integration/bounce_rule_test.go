@@ -54,16 +54,27 @@ func (suite *BounceRuleSuite) SetupTest() {
 			priority tinyint(3) unsigned NOT NULL DEFAULT '0',
 			description varchar(255) DEFAULT NULL,
 			bounce_action varchar(255) NOT NULL,
+			operation ENUM('Create', 'Delete', 'Update') NOT NULL,  
 			PRIMARY KEY (created_at)
 	  	) ENGINE=InnoDB DEFAULT CHARSET=latin1;`)
 	assert.NoError(suite.T(), err, "Failed to set up change_log table for testing")
 
 	mysql.RegisterLocalFile("testdata/bounce_rules.csv")
+	mysql.RegisterLocalFile("testdata/changelog_test.csv")
 
 	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "testdata/bounce_rules.csv" + "' INTO TABLE bounce_rule FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
 	assert.NoError(suite.T(), err, "Failed to load data from the table")
 
 	inserted, err := res.RowsAffected()
+	assert.NoError(suite.T(), err, "Failed to get rows from table")
+	if inserted <= 0 {
+		suite.T().Fatalf("Expected rows in bounce_rule table, got 0\n Error: %v", err)
+	}
+
+	res, err = Database.Exec("LOAD DATA LOCAL INFILE '" + "testdata/changelog_test.csv" + "' INTO TABLE changelog FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
+	assert.NoError(suite.T(), err, "Failed to load data from the table")
+
+	inserted, err = res.RowsAffected()
 	assert.NoError(suite.T(), err, "Failed to get rows from table")
 	if inserted <= 0 {
 		suite.T().Fatalf("Expected rows in bounce_rule table, got 0\n Error: %v", err)
@@ -94,6 +105,15 @@ func (suite *BounceRuleSuite) TestGetSingleBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 	// assert contents
+
+	var want models.BounceRule
+	defer resp.Body.Close()
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&want)
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
+
+	assert.Equal(suite.T(), 180, want.ID)
+	assert.Equal(suite.T(), 501, want.ResponseCode)
 }
 
 func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
@@ -102,20 +122,22 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
-	reqBody := map[string]interface{}{
-		"ResponseCode": 421,
-		"EnhancedCode": "5235123",
-		"Regex":        "1111111",
-		"Priority":     0,
-		"Description":  "RFC5321 Service not available",
-		"BounceAction": "retry",
+	want := models.BounceRule{
+		ID:           507,
+		ResponseCode: 421,
+		EnhancedCode: "5235123",
+		Regex:        "1111132",
+		Priority:     0,
+		Description:  "RFC5321 Service not available",
+		BounceAction: "try it again homie",
 	}
-	preSend, err := json.Marshal(reqBody)
+
+	preSend, err := json.Marshal(want)
+
 	assert.NoError(suite.T(), err, "Failed to marshal JSON")
 
 	resp, err = http.Post("http://localhost:4000/bounce_rules", "application/json", bytes.NewBuffer(preSend))
 	assert.NoError(suite.T(), err, "Failed to send POST request")
-
 	assert.NotNil(suite.T(), resp)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
@@ -123,6 +145,15 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+
+	var have models.BounceRule
+	defer resp.Body.Close()
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&have)
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
+
+	assert.Equal(suite.T(), want, have)
+
 }
 
 func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
@@ -133,7 +164,19 @@ func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
 		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound) // switch to http.StatusNotFound when PR merged
 	}
 
-	req, err = http.NewRequest("DELETE", "http://localhost:4000/bounce_rules/200", nil)
+	want := models.BounceRule{
+		ID:           200,
+		ResponseCode: 0,
+		EnhancedCode: "5.1.8",
+		Regex:        "",
+		Priority:     0,
+		Description:  "RFC3463 Bad senders system address",
+		BounceAction: "no_action",
+	}
+
+	preSend, err := json.Marshal(want)
+
+	req, err = http.NewRequest("DELETE", "http://localhost:4000/bounce_rules/200", bytes.NewBuffer(preSend))
 	assert.NoError(suite.T(), err, "Failed to form DELETE request")
 
 	res, err = suite.client.Do(req)
@@ -141,8 +184,16 @@ func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
 		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	req, err = http.NewRequest("DELETE", "http://localhost:4000/bounce_rules/200", nil)
+	req, err = http.NewRequest("DELETE", "http://localhost:4000/bounce_rules/200", bytes.NewBuffer(preSend))
 	assert.NoError(suite.T(), err, "Failed to form DELETE request")
+
+	res, err = suite.client.Do(req)
+	if status := res.StatusCode; status != http.StatusNotFound {
+		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
+	}
+
+	req, err = http.NewRequest("GET", "http://localhost:4000/bounce_rules/200", nil)
+	assert.NoError(suite.T(), err, "Failed to form GET request")
 
 	res, err = suite.client.Do(req)
 	if status := res.StatusCode; status != http.StatusNotFound {
@@ -152,10 +203,10 @@ func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
 }
 
 func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
-	reqBody := models.BounceRule{
-		ID: 800, ResponseCode: 403, EnhancedCode: "111", Regex: "asfba", Priority: 0, Description: "Test Update", BounceAction: "Do Nothing",
+	want := models.BounceRule{
+		ID: 180, ResponseCode: 403, EnhancedCode: "111", Regex: "asfba", Priority: 0, Description: "Test Update", BounceAction: "Do Nothing",
 	}
-	jsonBody, _ := json.Marshal(reqBody)
+	jsonBody, _ := json.Marshal(want)
 
 	req, err := http.NewRequest("PUT", "http://localhost:4000/bounce_rules/800", bytes.NewBuffer(jsonBody))
 	assert.NoError(suite.T(), err, "Failed to form PUT request")
@@ -174,6 +225,19 @@ func (suite *BounceRuleSuite) TestUpdateBounceRuleHandler() {
 	if status := res.StatusCode; status != http.StatusOK {
 		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
+
+	resp, err := http.Get("http://localhost:4000/bounce_rules/180")
+	assert.NoError(suite.T(), err, "Failed to send GET request")
+
+	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+
+	var have models.BounceRule
+	defer resp.Body.Close()
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&have)
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
+
+	assert.Equal(suite.T(), want, have)
 
 }
 

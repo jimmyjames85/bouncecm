@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "-- Running tests"
+docker-compose run -rm integration go test -v src/github.com/jimmyjames85/bouncecm/internal/integration/*.go
+

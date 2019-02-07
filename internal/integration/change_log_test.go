@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -33,6 +34,7 @@ func (suite *ChangelogSuite) SetupTest() {
 			priority tinyint(3) unsigned NOT NULL DEFAULT '0',
 			description varchar(255) DEFAULT NULL,
 			bounce_action varchar(255) NOT NULL,
+			operation ENUM('Create', 'Delete', 'Update') NOT NULL,  
 			PRIMARY KEY (created_at)
 	  	) ENGINE=InnoDB DEFAULT CHARSET=latin1;`)
 	assert.NoError(suite.T(), err, "Failed to set up change_log table for testing")
@@ -57,8 +59,6 @@ func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
 	assert.Equal(suite.T(), http.StatusOK, res.StatusCode)
 }
 
-// Uncomment after changelog-CR is merged
-//
 func (suite *ChangelogSuite) TestGetSingleChangelogHandler() {
 	resp, err := http.Get("http://localhost:4000/change_logs/400")
 	assert.NoError(suite.T(), err, "Failed to send GET request")
@@ -68,6 +68,18 @@ func (suite *ChangelogSuite) TestGetSingleChangelogHandler() {
 	resp, err = http.Get("http://localhost:4000/change_logs/204")
 	assert.NoError(suite.T(), err, "Failed to send GET request")
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+
+	changelogs := make([]models.ChangelogEntry, 0)
+	defer resp.Body.Close()
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&changelogs)
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
+
+	assert.Len(suite.T(), changelogs, 3)
+	assert.Equal(suite.T(), 204, changelogs[0].ID)
+	assert.Equal(suite.T(), "reverted response code and updated enhanced", changelogs[0].Comment)
+	assert.Equal(suite.T(), "updated response code", changelogs[1].Comment)
+	assert.Equal(suite.T(), "new regex", changelogs[2].Comment)
 }
 
 func (suite *ChangelogSuite) TestPostChangelogRoute() {
@@ -76,16 +88,21 @@ func (suite *ChangelogSuite) TestPostChangelogRoute() {
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
-	reqBody := map[string]interface{}{
-		"UserID":       2,
-		"Comment":      "Fixed the response code (hopefully)",
-		"ResponseCode": 403,
-		"EnhancedCode": "5265126",
-		"Regex":        "1212121",
-		"Priority":     0,
-		"Description":  "RFC5321 Service not available",
-		"BounceAction": "TRY IT AGAIN",
+	reqBody := models.ChangelogEntry{
+		BounceRule: models.BounceRule{
+			ID:           204,
+			ResponseCode: 403,
+			EnhancedCode: "5265126",
+			Regex:        "abc*",
+			Priority:     0,
+			Description:  "RFC5321 Service not available",
+			BounceAction: "TRY IT AGAIN",
+		},
+		UserID:    2,
+		Comment:   "Fixed the response code (hopefully)",
+		Operation: "Create",
 	}
+
 	preSend, err := json.Marshal(reqBody)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
@@ -99,6 +116,18 @@ func (suite *ChangelogSuite) TestPostChangelogRoute() {
 	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+
+	changelogs := make([]models.ChangelogEntry, 0)
+	defer resp.Body.Close()
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&changelogs)
+	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
+
+	assert.Len(suite.T(), changelogs, 4)
+	assert.Equal(suite.T(), 204, changelogs[0].ID)
+	assert.Equal(suite.T(), "Fixed the response code (hopefully)", changelogs[0].Comment)
+	assert.Equal(suite.T(), 520, changelogs[1].ResponseCode)
+	assert.Equal(suite.T(), 403, changelogs[0].ResponseCode)
 }
 
 func (suite *ChangelogSuite) TearDownTest() {
