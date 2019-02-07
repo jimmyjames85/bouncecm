@@ -190,7 +190,7 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var toDelete models.ChangelogEntry
 	err := decoder.Decode(&toDelete)
-	
+
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -199,9 +199,7 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 	toDelete.Operation = "Delete"
 
-
 	err = srv.DBClient.CreateChangeLogEntry(toDelete.ID, &toDelete)
-
 
 	if err != nil {
 		log.Println(err)
@@ -209,15 +207,12 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	err = srv.DBClient.DeleteRule(toDelete.ID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-
-
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -229,7 +224,7 @@ func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	var rule models.ChangelogEntry
 
 	err := decoder.Decode(&rule)
-	rule.Operation = "New"
+	rule.Operation = "Create"
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
