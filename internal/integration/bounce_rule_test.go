@@ -54,16 +54,27 @@ func (suite *BounceRuleSuite) SetupTest() {
 			priority tinyint(3) unsigned NOT NULL DEFAULT '0',
 			description varchar(255) DEFAULT NULL,
 			bounce_action varchar(255) NOT NULL,
+			operation ENUM('Create', 'Delete', 'Update') NOT NULL,  
 			PRIMARY KEY (created_at)
 	  	) ENGINE=InnoDB DEFAULT CHARSET=latin1;`)
 	assert.NoError(suite.T(), err, "Failed to set up change_log table for testing")
 
 	mysql.RegisterLocalFile("testdata/bounce_rules.csv")
+	mysql.RegisterLocalFile("testdata/changelog_test.csv")
 
 	res, err := Database.Exec("LOAD DATA LOCAL INFILE '" + "testdata/bounce_rules.csv" + "' INTO TABLE bounce_rule FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
 	assert.NoError(suite.T(), err, "Failed to load data from the table")
 
 	inserted, err := res.RowsAffected()
+	assert.NoError(suite.T(), err, "Failed to get rows from table")
+	if inserted <= 0 {
+		suite.T().Fatalf("Expected rows in bounce_rule table, got 0\n Error: %v", err)
+	}
+
+	res, err = Database.Exec("LOAD DATA LOCAL INFILE '" + "testdata/changelog_test.csv" + "' INTO TABLE changelog FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
+	assert.NoError(suite.T(), err, "Failed to load data from the table")
+
+	inserted, err = res.RowsAffected()
 	assert.NoError(suite.T(), err, "Failed to get rows from table")
 	if inserted <= 0 {
 		suite.T().Fatalf("Expected rows in bounce_rule table, got 0\n Error: %v", err)
@@ -127,7 +138,6 @@ func (suite *BounceRuleSuite) TestPostBounceRuleHandler() {
 
 	resp, err = http.Post("http://localhost:4000/bounce_rules", "application/json", bytes.NewBuffer(preSend))
 	assert.NoError(suite.T(), err, "Failed to send POST request")
-
 	assert.NotNil(suite.T(), resp)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
@@ -154,7 +164,19 @@ func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
 		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound) // switch to http.StatusNotFound when PR merged
 	}
 
-	req, err = http.NewRequest("DELETE", "http://localhost:4000/bounce_rules/200", nil)
+	want := models.BounceRule{
+		ID:           200,
+		ResponseCode: 0,
+		EnhancedCode: "5.1.8",
+		Regex:        "",
+		Priority:     0,
+		Description:  "RFC3463 Bad senders system address",
+		BounceAction: "no_action",
+	}
+
+	preSend, err := json.Marshal(want)
+
+	req, err = http.NewRequest("DELETE", "http://localhost:4000/bounce_rules/200", bytes.NewBuffer(preSend))
 	assert.NoError(suite.T(), err, "Failed to form DELETE request")
 
 	res, err = suite.client.Do(req)
@@ -162,7 +184,7 @@ func (suite *BounceRuleSuite) TestDeleteBounceRuleHandler() {
 		suite.T().Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	req, err = http.NewRequest("DELETE", "http://localhost:4000/bounce_rules/200", nil)
+	req, err = http.NewRequest("DELETE", "http://localhost:4000/bounce_rules/200", bytes.NewBuffer(preSend))
 	assert.NoError(suite.T(), err, "Failed to form DELETE request")
 
 	res, err = suite.client.Do(req)

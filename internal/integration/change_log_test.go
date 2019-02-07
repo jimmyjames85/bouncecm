@@ -34,6 +34,7 @@ func (suite *ChangelogSuite) SetupTest() {
 			priority tinyint(3) unsigned NOT NULL DEFAULT '0',
 			description varchar(255) DEFAULT NULL,
 			bounce_action varchar(255) NOT NULL,
+			operation ENUM('Create', 'Delete', 'Update') NOT NULL,  
 			PRIMARY KEY (created_at)
 	  	) ENGINE=InnoDB DEFAULT CHARSET=latin1;`)
 	assert.NoError(suite.T(), err, "Failed to set up change_log table for testing")
@@ -97,8 +98,9 @@ func (suite *ChangelogSuite) TestPostChangelogRoute() {
 			Description:  "RFC5321 Service not available",
 			BounceAction: "TRY IT AGAIN",
 		},
-		UserID:  2,
-		Comment: "Fixed the response code (hopefully)",
+		UserID:    2,
+		Comment:   "Fixed the response code (hopefully)",
+		Operation: "Create",
 	}
 
 	preSend, err := json.Marshal(reqBody)
