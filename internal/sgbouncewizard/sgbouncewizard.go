@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -17,6 +18,7 @@ import (
 	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/olahol/melody.v1"
 )
 
 type TempJsonObject map[string]interface{}
@@ -418,6 +420,9 @@ func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Requ
 
 func (srv *Server) Serve(Port int) {
 	r := chi.NewRouter()
+	m := melody.New()
+	lock := new(sync.Mutex)
+	currentlyViewing := map[string]bool{}
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -463,6 +468,54 @@ func (srv *Server) Serve(Port int) {
 			r.Delete("/", srv.DeleteRuleRoute)
 			r.Put("/", srv.UpdateRuleRoute)
 		})
+	})
+
+	r.Route("/ws", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			m.HandleRequest(w, r)
+		})
+	})
+
+	m.HandleConnect(func(s *melody.Session) {
+		lock.Lock()
+		log.Println("CLIENT HAS CONNECTED")
+		m.Broadcast([]byte("WELCOME TO THE SERVER"))
+		lock.Unlock()
+	})
+
+	m.HandleMessage(func(s *melody.Session, msg []byte) {
+		log.Println(string(msg))
+		params := strings.Split(string(msg), " ")
+		lock.Lock()
+		if params[0] == "edit" {
+			if currentlyViewing[params[1]] {
+				log.Println("IN HERE")
+				_, exists := s.Get(params[1])
+				if !exists {
+					s.Write([]byte("INUSE"))
+				}
+			} else {
+				s.Set(params[1], true)
+				currentlyViewing[params[1]] = true
+				s.Write([]byte("EDIT"))
+			}
+		} else if params[0] == "release" {
+			if currentlyViewing[params[1]] {
+				delete(currentlyViewing, params[1])
+				s.Set(params[1], false)
+			}
+		} else if params[0] == "check" {
+			if currentlyViewing[params[1]] {
+				s.Write([]byte("INUSE"))
+			} else {
+				s.Write([]byte("FREE"))
+			}
+		}
+		lock.Unlock()
+	})
+
+	m.HandleDisconnect(func(s *melody.Session) {
+		log.Println("DISCONNECTED")
 	})
 
 	port := fmt.Sprintf(":%d", Port)
