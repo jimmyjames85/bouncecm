@@ -46,7 +46,7 @@ func (suite *ChangelogSuite) SetupTest() {
 }
 
 func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
-	req, err := http.NewRequest("GET", "http://localhost:4000/change_logs", nil)
+	req, err := http.NewRequest("GET", "http://localhost:4000/change_logs/?limit=999&offset=0", nil)
 	assert.NoError(suite.T(), err, "Failed to form GET request")
 
 	res, err := suite.client.Do(req)
@@ -60,18 +60,18 @@ func (suite *ChangelogSuite) TestGetAllChangelogsHandler() {
 // Uncomment after changelog-CR is merged
 //
 func (suite *ChangelogSuite) TestGetSingleChangelogHandler() {
-	resp, err := http.Get("http://localhost:4000/change_logs/400")
+	resp, err := http.Get("http://localhost:4000/change_logs/400/?limit=999&offset=0")
 	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
-	resp, err = http.Get("http://localhost:4000/change_logs/204")
+	resp, err = http.Get("http://localhost:4000/change_logs/204/?limit=999&offset=0")
 	assert.NoError(suite.T(), err, "Failed to send GET request")
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 }
 
 func (suite *ChangelogSuite) TestPostChangelogRoute() {
-	resp, err := http.Get("http://localhost:4000/change_logs/604")
+	resp, err := http.Get("http://localhost:4000/change_logs/604/?limit=999&offset=0")
 	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
@@ -89,13 +89,13 @@ func (suite *ChangelogSuite) TestPostChangelogRoute() {
 	preSend, err := json.Marshal(reqBody)
 	assert.NoError(suite.T(), err, "Failed to marshal struct into JSON")
 
-	resp, err = http.Post("http://localhost:4000/change_logs", "application/json", bytes.NewBuffer(preSend))
+	resp, err = http.Post("http://localhost:4000/change_logs/?limit=999&offset=0", "application/json", bytes.NewBuffer(preSend))
 	assert.NoError(suite.T(), err, "Failed to send POST request")
 
 	assert.NotNil(suite.T(), resp)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	resp, err = http.Get("http://localhost:4000/change_logs/204")
+	resp, err = http.Get("http://localhost:4000/change_logs/204/?limit=999&offset=0")
 	assert.NoError(suite.T(), err, "Failed to send GET request")
 
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)

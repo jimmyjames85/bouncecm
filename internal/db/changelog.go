@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"math"
 	"regexp"
 	"time"
 	"github.com/pkg/errors"
@@ -13,10 +12,10 @@ import (
 )
 
 // Changelog - Function to pull all rules from db
-func (c *Client) GetAllChangelogEntries() ([]models.ChangelogEntry, error) {
+func (c *Client) GetAllChangelogEntries( offset int, limit int) ([]models.ChangelogEntry, error) {
 	rules := []models.ChangelogEntry{}
 
-	rows, err := c.Conn.Query("SELECT * FROM changelog ")
+	rows, err := c.Conn.Query("SELECT * FROM changelog LIMIT ?,?", offset, limit)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Query Error")
@@ -49,16 +48,13 @@ func (c *Client) GetAllChangelogEntries() ([]models.ChangelogEntry, error) {
 	return rules, nil
 }
 
-func (c *Client) GetChangeLogEntries(id int, limit *int) ([]models.ChangelogEntry, error) {
+func (c *Client) GetChangeLogEntries(id int, offset int, limit int) ([]models.ChangelogEntry, error) {
 
 	var rows *sql.Rows
 	var err error
 
-	if limit == nil {
-		rows, err = c.Conn.Query("SELECT * From changelog WHERE rule_id = ?  ORDER BY created_at DESC LIMIT ?", id, math.MaxInt64)
-	} else {
-		rows, err = c.Conn.Query("SELECT * From changelog WHERE rule_id = ?  ORDER BY created_at DESC LIMIT ?", id, limit)
-	}
+	rows, err = c.Conn.Query("SELECT * From changelog WHERE rule_id = ?  ORDER BY created_at DESC LIMIT ?,?", id, offset, limit)
+
 
 	if err != nil {
 		return nil, errors.Wrap(err, "GetChangeLogEntries Query")
