@@ -11,9 +11,9 @@ import (
 )
 
 // ListRules - Function to pull all rules from db
-func (c *Client) GetAllRules() ([]models.BounceRule, error) {
+func (c *Client) GetAllRules(offset int, limit int) ([]models.BounceRule, error) {
 	rules := []models.BounceRule{}
-	rows, err := c.Conn.Query("SELECT * FROM bounce_rule")
+	rows, err := c.Conn.Query("SELECT * FROM bounce_rule LIMIT ?,?", offset, limit)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "GetAllRules Query")

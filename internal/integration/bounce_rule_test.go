@@ -82,7 +82,7 @@ func (suite *BounceRuleSuite) SetupTest() {
 }
 
 func (suite *BounceRuleSuite) TestGetAllBounceRulesHandler() {
-	req, err := http.NewRequest("GET", "http://localhost:4000/bounce_rules", nil)
+	req, err := http.NewRequest("GET", "http://localhost:4000/bounce_rules/?limit=10&offset=0 ", nil)
 	assert.NoError(suite.T(), err, "Failed to form request")
 
 	res, err := suite.client.Do(req)

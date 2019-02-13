@@ -142,7 +142,42 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 
 // ListRules - wrapper to grab all rules
 func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
-	rules, err := srv.DBClient.GetAllRules()
+	queryParams := r.URL.Query()
+
+	limit, ok := queryParams["limit"]
+
+	if !ok || len(limit) > 1{
+		paramError := errors.New("Invalid limit Parameter: does not exist or to many")
+		http.Error(w, paramError.Error(), http.StatusBadRequest)
+		return
+	}
+
+
+	offset, ok := queryParams["offset"]
+	if !ok ||  len(offset) > 1 {
+		paramError := errors.New("Invalid offset Parameter: does not exist or to many")
+		http.Error(w, paramError.Error(), http.StatusBadRequest)
+		return
+	}
+
+
+	limitAsInt, err := strconv.Atoi(r.FormValue("limit"))
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	OffsetAsInt, err := strconv.Atoi(r.FormValue("offset"))
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	rules, err := srv.DBClient.GetAllRules(OffsetAsInt,limitAsInt)
 
 	if err != nil {
 		log.Println(err)
