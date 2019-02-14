@@ -476,46 +476,42 @@ func (srv *Server) Serve(Port int) {
 		})
 	})
 
-	m.HandleConnect(func(s *melody.Session) {
-		lock.Lock()
-		log.Println("CLIENT HAS CONNECTED")
-		m.Broadcast([]byte("WELCOME TO THE SERVER"))
-		lock.Unlock()
-	})
-
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		log.Println(string(msg))
 		params := strings.Split(string(msg), " ")
 		lock.Lock()
 		if params[0] == "edit" {
 			if currentlyViewing[params[1]] {
-				log.Println("IN HERE")
 				_, exists := s.Get(params[1])
 				if !exists {
+					log.Println("ATTEMPT TO EDIT RULE THAT IS BEING EDITED")
 					s.Write([]byte("INUSE"))
+				} else {
+					s.Write([]byte("ALREADY"))
 				}
 			} else {
 				s.Set(params[1], true)
 				currentlyViewing[params[1]] = true
 				s.Write([]byte("EDIT"))
+				m.BroadcastOthers([]byte("INUSE"), s)
 			}
 		} else if params[0] == "release" {
 			if currentlyViewing[params[1]] {
 				delete(currentlyViewing, params[1])
 				s.Set(params[1], false)
+				m.BroadcastOthers([]byte("FREE"), s)
 			}
 		} else if params[0] == "check" {
 			if currentlyViewing[params[1]] {
-				s.Write([]byte("INUSE"))
+				_, exists := s.Get(params[1])
+				if !exists {
+					s.Write([]byte("INUSE"))
+				}
 			} else {
 				s.Write([]byte("FREE"))
 			}
 		}
 		lock.Unlock()
-	})
-
-	m.HandleDisconnect(func(s *melody.Session) {
-		log.Println("DISCONNECTED")
 	})
 
 	port := fmt.Sprintf(":%d", Port)
