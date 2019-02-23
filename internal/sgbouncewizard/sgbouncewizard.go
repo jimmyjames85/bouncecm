@@ -45,8 +45,8 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rule *models.BounceRule
 
-		bounce_id := chi.URLParam(r, "bounce_id")
-		bouncd_idInt, err := strconv.Atoi(bounce_id)
+	
+		bouncd_id, err := strconv.Atoi(chi.URLParam(r, "bounce_id"))
 
 		if err != nil {
 			log.Println(err)
@@ -54,7 +54,7 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 			return
 		}
 
-		rule, err = srv.DBClient.GetSingleRule(bouncd_idInt)
+		rule, err = srv.DBClient.GetSingleRule(bouncd_id)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -326,7 +326,7 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 		}
 
 
-		limitAsInt, err := strconv.Atoi(r.FormValue("limit"))
+		limit, err := strconv.Atoi(r.FormValue("limit"))
 
 		if err != nil {
 			log.Println(err)
