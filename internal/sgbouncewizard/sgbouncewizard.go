@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
+	"math"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -161,20 +161,30 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	limit, err := strconv.Atoi(r.FormValue("limit"))
+	if (len(offset_param) == 0 &&  len(limit_param) == 0){
+		limit := math.MaxInt32
+		offset := 0
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
 	}
 
-	Offset, err := strconv.Atoi(r.FormValue("offset"))
+	
+	if (len(offset_param) == 1 &&  len(limit_param) == 1){
+		limit, err := strconv.Atoi(r.FormValue("limit"))
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	
+		Offset, err := strconv.Atoi(r.FormValue("offset"))
+	
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	
 	}
 
 	rules, err := srv.DBClient.GetAllRules(Offset,limit)
