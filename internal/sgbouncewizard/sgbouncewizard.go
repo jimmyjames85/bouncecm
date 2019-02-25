@@ -342,7 +342,7 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 		}
 
 
-		changelog, err = srv.DBClient.GetChangeLogEntries(bounce_id, offset,  limit)
+		changelog, err = srv.DBClient.GetChangeLogById(bounce_id, offset,  limit)
 	
 		if err != nil {
 			log.Println(err)
@@ -399,22 +399,32 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if (len(offset_param) == 0 &&  len(limit_param) == 0){
+		limit := math.MaxInt32
+		offset := 0
 
-	limit, err := strconv.Atoi(r.FormValue("limit"))
-
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
 	}
 
-	Offset, err := strconv.Atoi(r.FormValue("offset"))
+	
+	if (len(offset_param) == 1 &&  len(limit_param) == 1){
+		limit, err := strconv.Atoi(r.FormValue("limit"))
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	
+		Offset, err := strconv.Atoi(r.FormValue("offset"))
+	
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	
 	}
+
 
 	changelog, err := srv.DBClient.GetAllChangelogEntries(Offset,limit)
 

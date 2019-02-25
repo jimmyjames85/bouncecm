@@ -48,7 +48,7 @@ func (c *Client) GetAllChangelogEntries( offset int, limit int) ([]models.Change
 	return rules, nil
 }
 
-func (c *Client) GetChangeLogEntries(id int, offset int, limit int) ([]models.ChangelogEntry, error) {
+func (c *Client) GetChangeLogById(id int, offset int, limit int) ([]models.ChangelogEntry, error) {
 
 	var rows *sql.Rows
 	var err error
@@ -57,7 +57,7 @@ func (c *Client) GetChangeLogEntries(id int, offset int, limit int) ([]models.Ch
 
 
 	if err != nil {
-		return nil, errors.Wrap(err, "GetChangeLogEntries Query")
+		return nil, errors.Wrap(err, "GetChangeLogById Query")
 	}
 
 	rules := []models.ChangelogEntry{}
@@ -69,7 +69,7 @@ func (c *Client) GetChangeLogEntries(id int, offset int, limit int) ([]models.Ch
 		var description sql.NullString
 		err = rows.Scan(&cl.ID, &cl.UserID, &cl.Comment, &cl.CreatedAt, &cl.ResponseCode, &cl.EnhancedCode, &cl.Regex, &cl.Priority, &description, &cl.BounceAction, &cl.Operation)
 		if err != nil {
-			return nil, errors.Wrap(err, "GetChangeLogEntries Row Scan")
+			return nil, errors.Wrap(err, "GetChangeLogById Row Scan")
 		}
 		if description.Valid {
 			cl.Description = description.String
@@ -79,7 +79,7 @@ func (c *Client) GetChangeLogEntries(id int, offset int, limit int) ([]models.Ch
 
 	if len(rules) <= 0 {
 		emptyChangelogError := errors.New("sql: no rows in result set")
-		return nil, errors.Wrap(emptyChangelogError, "GetChangeLogEntries")
+		return nil, errors.Wrap(emptyChangelogError, "GetChangeLogById")
 	}
 
 	err = rows.Err()
