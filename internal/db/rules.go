@@ -11,9 +11,43 @@ import (
 )
 
 // ListRules - Function to pull all rules from db
-func (c *Client) GetAllRules(offset int, limit int) ([]models.BounceRule, error) {
+func (c *Client) GetAllRulesLimited(offset int, limit int) ([]models.BounceRule, error) {
 	rules := []models.BounceRule{}
 	rows, err := c.Conn.Query("SELECT * FROM bounce_rule LIMIT ?,?", offset, limit)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "GetAllRulesLimited Query")
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		br := models.BounceRule{}
+
+		var description sql.NullString
+		err := rows.Scan(&br.ID, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description, &br.BounceAction)
+
+		if description.Valid {
+			br.Description = description.String
+		}
+
+		if err != nil {
+			return nil, errors.Wrap(err, "GetAllRulesLimited Scanning")
+		}
+		rules = append(rules, br)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, errors.Wrap(err, "GetAllRulesLimited Row.Err")
+	}
+
+	return rules, nil
+}
+
+func (c *Client) GetAllRules() ([]models.BounceRule, error) {
+	rules := []models.BounceRule{}
+	rows, err := c.Conn.Query("SELECT * FROM bounce_rule")
 
 	if err != nil {
 		return nil, errors.Wrap(err, "GetAllRules Query")
@@ -44,6 +78,7 @@ func (c *Client) GetAllRules(offset int, limit int) ([]models.BounceRule, error)
 
 	return rules, nil
 }
+
 
 func (c *Client) GetSingleRule(id int) (*models.BounceRule, error) {
 	var br models.BounceRule

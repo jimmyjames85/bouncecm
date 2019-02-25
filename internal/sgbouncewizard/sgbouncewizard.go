@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"math"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -144,30 +143,47 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 
+
+	var needsLimit = true;
+	var needsOffset =  true;
+
 	limit_param, ok := queryParams["limit"]
 
-	if !ok || len(limit_param) > 1{
+	if len(limit_param) > 1{
 		paramError := errors.New("Invalid limit Parameter: does not exist or to many")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
+	if (!ok){
+		needsLimit = false
+	}
 
 	offset_param, ok := queryParams["offset"]
-	if !ok ||  len(offset_param) > 1 {
+	if len(offset_param) > 1 {
 		paramError := errors.New("Invalid offset Parameter: does not exist or to many")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-
-	if (len(offset_param) == 0 &&  len(limit_param) == 0){
-		limit := math.MaxInt32
-		offset := 0
-
+	if (!ok){
+		needsOffset = false
 	}
 
+	var rules []models.BounceRule
+	var err error
 	
+
+	if (!needsLimit &&  !needsOffset){
+		rules, err = srv.DBClient.GetAllRules()
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+	} 
+
+
 	if (len(offset_param) == 1 &&  len(limit_param) == 1){
 		limit, err := strconv.Atoi(r.FormValue("limit"))
 
@@ -184,16 +200,18 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		rules, err = srv.DBClient.GetAllRulesLimited(Offset,limit)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 	
 	}
 
-	rules, err := srv.DBClient.GetAllRules(Offset,limit)
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
 
 	data, err := json.Marshal(&rules)
 
