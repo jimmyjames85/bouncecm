@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"regexp"
 	"time"
+
 	"github.com/pkg/errors"
 	"strconv"
 	"fmt"
@@ -160,8 +161,7 @@ func (c *Client) GetAllChangelogEntries() ([]models.ChangelogEntry, error) {
 	for rows.Next() {
 		br := models.ChangelogEntry{}
 		var description sql.NullString
-		err = rows.Scan(&br.ID, &br.UserID, &br.Comment, &br.CreatedAt, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description, &br.BounceAction , &br.Operation)
-
+		err = rows.Scan(&br.ChangelogID, &br.ID, &br.UserID, &br.Comment, &br.CreatedAt, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description, &br.BounceAction, &br.Operation)
 
 		if description.Valid {
 			br.Description = description.String
@@ -244,7 +244,7 @@ func (c *Client) GetChangeLogById(id int) ([]models.ChangelogEntry, error) {
 	for rows.Next() {
 		cl := models.ChangelogEntry{}
 		var description sql.NullString
-		err = rows.Scan(&cl.ID, &cl.UserID, &cl.Comment, &cl.CreatedAt, &cl.ResponseCode, &cl.EnhancedCode, &cl.Regex, &cl.Priority, &description, &cl.BounceAction, &cl.Operation)
+		err = rows.Scan(&cl.ChangelogID, &cl.ID, &cl.UserID, &cl.Comment, &cl.CreatedAt, &cl.ResponseCode, &cl.EnhancedCode, &cl.Regex, &cl.Priority, &description, &cl.BounceAction, &cl.Operation)
 		if err != nil {
 			return nil, errors.Wrap(err, "GetChangeLogById Row Scan")
 		}
