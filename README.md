@@ -49,7 +49,7 @@ Get:
 
 ```bash
 Post:
-curl -X POST -H 'Content-Type: application/json' -d '{"response_code":123, "enhanced_code":"1.2.4", "regex":"testing", "priority":123, "description":"This is for testing", "bounce_action":"AUTOINCREMETTESTING"}' localhost:3000/ bounce_rules/
+`curl -X POST -H 'Content-Type: application/json' -d '{"response_code":123, "enhanced_code":"1.2.4", "regex":"testing", "priority":123, "description":"This is for testing", "bounce_action":"AUTOINCREMETTESTING"}' localhost:3000/bounce_rules/`
 ```
 
 ```bash
@@ -61,6 +61,13 @@ curl -X PUT -H "Content-Type: application/json" -d '{"id":505,"response_code":12
 Delete:
 curl -X DELETE -H "Content-Type: application/json" -d '{"id":354, "user_id":1, "created_at":999999, "comment":"DEletetesting",  "response_code":123, "enhanced_code":"1.2.4", "regex":"testing", "priority":123, "description":"This is for testing", "bounce_action":"PUTTESTING"}' localhost:3000/bounce_rules/354
 ```
+
+```
+Note: /change_logs & /change_logs/{id} require query parameters limit and offset 
+    example:  /change_logs/?limit=10&offset=0 & /change_logs/{id}?limit=10&offset=0
+    
+    /bounce_rules  require query parameters limit and offset 
+    example:  /bounce_rules/?limit=10&offset=0 ```
 
 ## Testing
 
