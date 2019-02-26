@@ -140,13 +140,65 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 
 // ListRules - wrapper to grab all rules
 func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
-	rules, err := srv.DBClient.GetAllRules()
+	queryParams := r.URL.Query()
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusNotFound)
+
+	limit_param := queryParams["limit"]
+
+	if len(limit_param) > 1{
+		paramError := errors.New("Invalid limit Parameter: does not exist or to many")
+		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
+
+
+	offset_param := queryParams["offset"]
+	if len(offset_param) > 1 {
+		paramError := errors.New("Invalid offset Parameter: does not exist or to many")
+		http.Error(w, paramError.Error(), http.StatusBadRequest)
+		return
+	}
+
+
+	var rules []models.BounceRule
+	var err error
+	
+
+	if (len(offset_param) == 0 &&  len(limit_param) == 0){
+		rules, err = srv.DBClient.GetAllRules()
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+	} else {
+		limit, err := strconv.Atoi(r.FormValue("limit"))
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	
+		Offset, err := strconv.Atoi(r.FormValue("offset"))
+	
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		rules, err = srv.DBClient.GetAllRulesLimited(Offset,limit)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+	
+	}
+
+
 
 	data, err := json.Marshal(&rules)
 
