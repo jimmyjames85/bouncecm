@@ -19,15 +19,22 @@ elif [ "$1" == "dev" ]; then
     echo "\nConnecting to dev MySQL docker container: bouncecm_database_1v\n"
     container="bouncecm_database_1"
     table="drop_rules"
+    commands="-e use drop_rules;"
 elif [ "$1" == "test" ];then
     echo "\nConnecting to test MySQL docker container: bouncecm_test_database_1\n"
     container="bouncecm_test_database_1"
-    table="test_rules"
+    commands="-e use test_rules;"
 fi
 
 if [ "$2" == "show" ]; then
     echo "\nGrabbing tables from "$container"\n"
-    commands="-e use "$table"; show tables;"
+    commands+="show tables;"
+elif [ "$2" == "b" ]; then
+    commands+="select * from bounce_rule"
+elif [ "$2" == "c" ]; then
+    commands+="select * from changelog"
+elif [ "$2" == "u" ]; then
+    commands+="select * from user"
 fi
 
 if [ "$3" == "b" ]; then

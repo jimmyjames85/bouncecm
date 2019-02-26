@@ -12,8 +12,8 @@ import (
 	"github.com/jimmyjames85/bouncecm/internal/models"
 )
 
-// Changelog - Function to pull all rules from db
-func (c *Client) GetAllChangelogEntriesLimited( offset int, limit int) ([]models.ChangelogEntry, error) {
+// GetAllChangelogEntriesLimited pulls entries from the database with a limited amount of entries being returned
+func (c *Client) GetAllChangelogEntriesLimited(offset int, limit int) ([]models.ChangelogEntry, error) {
 	rules := []models.ChangelogEntry{}
 
 	rows, err := c.Conn.Query("SELECT * FROM changelog order by created_at Desc LIMIT ?,?", offset, limit)
@@ -25,20 +25,19 @@ func (c *Client) GetAllChangelogEntriesLimited( offset int, limit int) ([]models
 	defer rows.Close()
 
 	for rows.Next() {
-		br := models.ChangelogEntry{}
+		cl := models.ChangelogEntry{}
 		var description sql.NullString
-		err = rows.Scan(&br.ID, &br.UserID, &br.Comment, &br.CreatedAt, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description, &br.BounceAction , &br.Operation)
-
+		err = rows.Scan(&cl.ChangelogID, &cl.ID, &cl.UserID, &cl.Comment, &cl.CreatedAt, &cl.ResponseCode, &cl.EnhancedCode, &cl.Regex, &cl.Priority, &description, &cl.BounceAction, &cl.Operation)
 
 		if description.Valid {
-			br.Description = description.String
+			cl.Description = description.String
 		}
 
 		if err != nil {
 			return nil, errors.Wrap(err, "Changelog with limit and offset Row Scan")
 		}
 
-		rules = append(rules, br)
+		rules = append(rules, cl)
 	}
 
 	err = rows.Err()
@@ -49,6 +48,7 @@ func (c *Client) GetAllChangelogEntriesLimited( offset int, limit int) ([]models
 	return rules, nil
 }
 
+// GetAllChangelogEntries returns all of the entries within the changelog table
 func (c *Client) GetAllChangelogEntries() ([]models.ChangelogEntry, error) {
 	rules := []models.ChangelogEntry{}
 
@@ -84,56 +84,13 @@ func (c *Client) GetAllChangelogEntries() ([]models.ChangelogEntry, error) {
 	return rules, nil
 }
 
+// GetChangeLogByIdLimited returns the specified amount of changelogs for the specified bounce rule through its ID
 func (c *Client) GetChangeLogByIdLimited(id int, offset int, limit int) ([]models.ChangelogEntry, error) {
 
 	var rows *sql.Rows
 	var err error
 
 	rows, err = c.Conn.Query("SELECT * From changelog WHERE rule_id = ?  ORDER BY created_at DESC LIMIT ?,?", id, offset, limit)
-
-
-	if err != nil {
-		return nil, errors.Wrap(err, "GetChangeLogById Query")
-	}
-
-	rules := []models.ChangelogEntry{}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		cl := models.ChangelogEntry{}
-		var description sql.NullString
-		err = rows.Scan(&cl.ID, &cl.UserID, &cl.Comment, &cl.CreatedAt, &cl.ResponseCode, &cl.EnhancedCode, &cl.Regex, &cl.Priority, &description, &cl.BounceAction, &cl.Operation)
-		if err != nil {
-			return nil, errors.Wrap(err, "GetChangeLogById Row Scan")
-		}
-		if description.Valid {
-			cl.Description = description.String
-		}
-		rules = append(rules, cl)
-	}
-
-	if len(rules) <= 0 {
-		emptyChangelogError := errors.New("sql: no rows in result set")
-		return nil, errors.Wrap(emptyChangelogError, "GetChangeLogById")
-	}
-
-	err = rows.Err()
-	if err != nil {
-		return nil, errors.Wrap(err, "GetAllRules Row.Err")
-	}
-
-	return rules, nil
-}
-
-
-func (c *Client) GetChangeLogById(id int) ([]models.ChangelogEntry, error) {
-
-	var rows *sql.Rows
-	var err error
-
-	rows, err = c.Conn.Query("SELECT * From changelog WHERE rule_id = ?  ORDER BY created_at DESC ", id)
-
 
 	if err != nil {
 		return nil, errors.Wrap(err, "GetChangeLogById Query")
@@ -169,6 +126,49 @@ func (c *Client) GetChangeLogById(id int) ([]models.ChangelogEntry, error) {
 	return rules, nil
 }
 
+// GetChangeLogById returns all of the changelog entries for a specified bounce rule
+func (c *Client) GetChangeLogById(id int) ([]models.ChangelogEntry, error) {
+
+	var rows *sql.Rows
+	var err error
+
+	rows, err = c.Conn.Query("SELECT * From changelog WHERE rule_id = ?  ORDER BY created_at DESC ", id)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "GetChangeLogById Query")
+	}
+
+	rules := []models.ChangelogEntry{}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		cl := models.ChangelogEntry{}
+		var description sql.NullString
+		err = rows.Scan(&cl.ChangelogID, &cl.ID, &cl.UserID, &cl.Comment, &cl.CreatedAt, &cl.ResponseCode, &cl.EnhancedCode, &cl.Regex, &cl.Priority, &description, &cl.BounceAction, &cl.Operation)
+		if err != nil {
+			return nil, errors.Wrap(err, "GetChangeLogById Row Scan")
+		}
+		if description.Valid {
+			cl.Description = description.String
+		}
+		rules = append(rules, cl)
+	}
+
+	if len(rules) <= 0 {
+		emptyChangelogError := errors.New("sql: no rows in result set")
+		return nil, errors.Wrap(emptyChangelogError, "GetChangeLogById")
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, errors.Wrap(err, "GetAllRules Row.Err")
+	}
+
+	return rules, nil
+}
+
+// CreateChangeLogEntry inserts a new entry into the database
 func (c *Client) CreateChangeLogEntry(lastId int, entry *models.ChangelogEntry) error {
 	_, err := regexp.Compile(entry.Regex)
 
