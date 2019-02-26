@@ -144,10 +144,7 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 
 
-	var needsLimit = true;
-	var needsOffset =  true;
-
-	limit_param, ok := queryParams["limit"]
+	limit_param := queryParams["limit"]
 
 	if len(limit_param) > 1{
 		paramError := errors.New("Invalid limit Parameter: does not exist or to many")
@@ -155,36 +152,27 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if (!ok){
-		needsLimit = false
-	}
 
-	offset_param, ok := queryParams["offset"]
+	offset_param := queryParams["offset"]
 	if len(offset_param) > 1 {
 		paramError := errors.New("Invalid offset Parameter: does not exist or to many")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if (!ok){
-		needsOffset = false
-	}
 
 	var rules []models.BounceRule
 	var err error
 	
 
-	if (!needsLimit &&  !needsOffset){
+	if (len(offset_param) == 0 &&  len(limit_param) == 0){
 		rules, err = srv.DBClient.GetAllRules()
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-	} 
-
-
-	if (len(offset_param) == 1 &&  len(limit_param) == 1){
+	} else {
 		limit, err := strconv.Atoi(r.FormValue("limit"))
 
 		if err != nil {
