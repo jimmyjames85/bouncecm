@@ -297,12 +297,6 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var changelog []models.ChangelogEntry
 
-		var needsLimit = true;
-		var needsOffset =  true;
-
-
-	
-
 		bounce_id, err := strconv.Atoi( chi.URLParam(r, "bounce_id"))
 
 		if err != nil {
@@ -313,41 +307,29 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 
 		queryParams := r.URL.Query()
 
-		limit_param, ok := queryParams["limit"]
+		limit_param := queryParams["limit"]
 		if len(limit_param) > 1{
 			paramError := errors.New("Invalid limit Parameter: does not exist or to many")
 			http.Error(w, paramError.Error(), http.StatusBadRequest)
 			return
 		}
 
-		if (!ok){
-			needsLimit = false
-		}
-
-		offset_param, ok := queryParams["offset"]
+	
+		offset_param := queryParams["offset"]
 		if  len(offset_param) > 1 {
 			paramError := errors.New("Invalid offset Parameter: does not exist or to many")
 			http.Error(w, paramError.Error(), http.StatusBadRequest)
 			return
 		}
 
-
-		if (!ok){
-			needsOffset = false
-		}
-
-		if (!needsLimit &&  !needsOffset){
-
+		if (len(offset_param) == 0 &&  len(limit_param) == 0){
 			changelog, err = srv.DBClient.GetChangeLogById(bounce_id)
 			if err != nil {
 				log.Println(err)
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
-		} 
-
-
-		if (len(offset_param) == 1 &&  len(limit_param) == 1){
+		} else {
 			limit, err := strconv.Atoi(r.FormValue("limit"))
 
 			if err != nil {
@@ -363,7 +345,6 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-	
 	
 			changelog, err = srv.DBClient.GetChangeLogByIdLimited(bounce_id, offset,  limit)
 		
@@ -407,10 +388,8 @@ func (srv *Server) GetChangeLogEntriesRoute(w http.ResponseWriter, r *http.Reque
 func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request) {
 
 	queryParams := r.URL.Query()
-	limit_param, ok := queryParams["limit"]
+	limit_param := queryParams["limit"]
 
-	var needsLimit = true;
-	var needsOffset =  true;
 
 	if  len(limit_param) > 1{
 		paramError := errors.New("Invalid limit Parameter: Too many")
@@ -418,11 +397,7 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if (!ok){
-		needsLimit = false
-	}
-
-	offset_param, ok := queryParams["offset"]
+	offset_param := queryParams["offset"]
 
 	if  len(offset_param) > 1 {
 		paramError := errors.New("Invalid offset Parameter: Too many")
@@ -430,15 +405,11 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if (!ok){
-		needsOffset = false
-	}
-
 
 	var changelog []models.ChangelogEntry
 	var err error
 
-	if (!needsLimit &&  !needsOffset){
+	if (len(offset_param) == 0 &&  len(limit_param) == 0){
 
 		changelog, err = srv.DBClient.GetAllChangelogEntries()
 		if err != nil {
@@ -446,10 +417,7 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-	}
-
-	
-	if (len(offset_param) == 1 &&  len(limit_param) == 1){
+	} else {
 		limit, err := strconv.Atoi(r.FormValue("limit"))
 
 		if err != nil {
