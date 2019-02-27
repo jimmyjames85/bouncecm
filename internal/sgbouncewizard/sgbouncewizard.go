@@ -521,8 +521,8 @@ func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Requ
 func (srv *Server) Serve(Port int) {
 	r := chi.NewRouter()
 	m := melody.New()
-	lock := new(sync.Mutex)
-	currentlyViewing := map[string]bool{}
+	lock := sync.Mutex{}
+	rulesBeingEdited := map[string]bool{}
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -577,33 +577,37 @@ func (srv *Server) Serve(Port int) {
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
-		log.Println(string(msg))
 		params := strings.Split(string(msg), " ")
 		lock.Lock()
-		if params[0] == "edit" {
-			if currentlyViewing[params[1]] {
-				_, exists := s.Get(params[1])
+		defer lock.Unlock()
+
+		command := params[0]
+		if command == "nil" {
+			s.Write([]byte("ERROR"))
+		}
+		bounceRuleID := params[1]
+		if bounceRuleID == "" {
+			s.Write([]byte("ERROR"))
+		}
+
+		switch command {
+		case "edit":
+			if rulesBeingEdited[bounceRuleID] {
+				_, exists := s.Get(bounceRuleID)
 				if !exists {
-					log.Println("ATTEMPT TO EDIT RULE THAT IS BEING EDITED")
 					s.Write([]byte("INUSE"))
 				} else {
 					s.Write([]byte("ALREADY"))
 				}
 			} else {
-				s.Set(params[1], true)
-				currentlyViewing[params[1]] = true
+				s.Set(bounceRuleID, true)
+				rulesBeingEdited[bounceRuleID] = true
 				s.Write([]byte("EDIT"))
 				m.BroadcastOthers([]byte("INUSE"), s)
 			}
-		} else if params[0] == "release" {
-			if currentlyViewing[params[1]] {
-				delete(currentlyViewing, params[1])
-				s.Set(params[1], false)
-				m.BroadcastOthers([]byte("FREE"), s)
-			}
-		} else if params[0] == "check" {
-			if currentlyViewing[params[1]] {
-				_, exists := s.Get(params[1])
+		case "check":
+			if rulesBeingEdited[bounceRuleID] {
+				_, exists := s.Get(bounceRuleID)
 				if !exists {
 					s.Write([]byte("INUSE"))
 				}
@@ -611,7 +615,7 @@ func (srv *Server) Serve(Port int) {
 				s.Write([]byte("FREE"))
 			}
 		}
-		lock.Unlock()
+
 	})
 
 	port := fmt.Sprintf(":%d", Port)
