@@ -589,12 +589,12 @@ func (srv *Server) Serve(Port int) {
 		if bounceRuleID == "" {
 			s.Write([]byte("ERROR"))
 		}
-
 		switch command {
 		case "edit":
 			if rulesBeingEdited[bounceRuleID] {
 				_, exists := s.Get(bounceRuleID)
 				if !exists {
+					log.Println("ATTEMPT TO EDIT RULE THAT IS BEING EDITED")
 					s.Write([]byte("INUSE"))
 				} else {
 					s.Write([]byte("ALREADY"))
@@ -605,6 +605,12 @@ func (srv *Server) Serve(Port int) {
 				s.Write([]byte("EDIT"))
 				m.BroadcastOthers([]byte("INUSE"), s)
 			}
+		case "release":
+			if rulesBeingEdited[bounceRuleID] {
+				delete(rulesBeingEdited, bounceRuleID)
+				s.Set(bounceRuleID, false)
+				m.BroadcastOthers([]byte("FREE"), s)
+			}
 		case "check":
 			if rulesBeingEdited[bounceRuleID] {
 				_, exists := s.Get(bounceRuleID)
@@ -614,8 +620,9 @@ func (srv *Server) Serve(Port int) {
 			} else {
 				s.Write([]byte("FREE"))
 			}
+		default:
+			s.Write([]byte("ERROR"))
 		}
-
 	})
 
 	port := fmt.Sprintf(":%d", Port)
