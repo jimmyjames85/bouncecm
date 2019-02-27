@@ -577,7 +577,7 @@ func (srv *Server) Serve(Port int) {
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
-		params := strings.Split(string(msg), " ")
+		params := strings.Split(string(msg), ":")
 		lock.Lock()
 		defer lock.Unlock()
 
@@ -594,7 +594,6 @@ func (srv *Server) Serve(Port int) {
 			if rulesBeingEdited[bounceRuleID] {
 				_, exists := s.Get(bounceRuleID)
 				if !exists {
-					log.Println("ATTEMPT TO EDIT RULE THAT IS BEING EDITED")
 					s.Write([]byte("INUSE"))
 				} else {
 					s.Write([]byte("ALREADY"))
@@ -612,12 +611,8 @@ func (srv *Server) Serve(Port int) {
 				m.BroadcastOthers([]byte("FREE"), s)
 			}
 		case "check":
-			if rulesBeingEdited[bounceRuleID] {
-				_, exists := s.Get(bounceRuleID)
-				if !exists {
-					s.Write([]byte("INUSE"))
-				}
-			} else {
+			if !rulesBeingEdited[bounceRuleID] {
+				log.Println(rulesBeingEdited[bounceRuleID])
 				s.Write([]byte("FREE"))
 			}
 		default:
