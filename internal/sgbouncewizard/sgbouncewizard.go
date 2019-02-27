@@ -582,7 +582,7 @@ func (srv *Server) Serve(Port int) {
 		defer lock.Unlock()
 
 		command := params[0]
-		if command == "nil" {
+		if command == "" {
 			s.Write([]byte("ERROR"))
 		}
 		bounceRuleID := params[1]
