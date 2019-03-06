@@ -14,7 +14,7 @@ type BounceRule struct {
 type ChangelogEntry struct {
 	BounceRule
 	UserID    int    `json:"user_id"`
-	CreatedAt int    `json:"created_at"`
+	CreatedAt int32    `json:"created_at"`
 	Comment   string `json:"comment"`
 	Operation string `json:"operation"`
 }

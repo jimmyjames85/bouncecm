@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
+	"time"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -15,7 +15,7 @@ import (
 	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
-)
+	log "github.com/sirupsen/logrus")
 
 type TempJsonObject map[string]interface{}
 
@@ -37,6 +37,8 @@ func NewServer(c config.Configuration) (*Server, error) {
 		log.Println(errors.Wrap(err, "Ping Failed"))
 		return nil, errors.Wrap(err, "Ping Failed")
 	}
+
+	log.WithFields(log.Fields{}).Info("Server was Created")
 
 	return &Server{DBClient: client}, nil
 }
@@ -249,6 +251,7 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 
 	toDelete.Operation = "Delete"
 
+	toDelete.CreatedAt = int32(time.Now().Unix())
 	err = srv.DBClient.CreateChangeLogEntry(toDelete.ID, &toDelete)
 
 	if err != nil {
@@ -263,6 +266,14 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
+	log.WithFields(log.Fields{
+		"UserID": toDelete.UserID,
+		"CreatedAt": toDelete.CreatedAt,
+		"Comment": toDelete.Comment,
+		"Operation": toDelete.Operation,
+	}).Info("Rule " + strconv.Itoa(toDelete.ID)  +" Deleted")
+
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -287,6 +298,7 @@ func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	rule.CreatedAt = int32(time.Now().Unix())
 	err = srv.DBClient.CreateChangeLogEntry(LastInsertedID, &rule)
 
 	if err != nil {
@@ -302,6 +314,13 @@ func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	log.WithFields(log.Fields{
+		"UserID": rule.UserID,
+		"CreatedAt": rule.CreatedAt,
+		"Comment": rule.Comment,
+		"Operation": rule.Operation,
+	}).Info("Rule " + strconv.Itoa( LastInsertedID)  +" Created")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -328,6 +347,7 @@ func (srv *Server) UpdateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	newRule.CreatedAt = int32(time.Now().Unix())
 	err = srv.DBClient.CreateChangeLogEntry(newRule.ID, &newRule)
 
 	if err != nil {
@@ -335,6 +355,13 @@ func (srv *Server) UpdateRuleRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	log.WithFields(log.Fields{
+		"UserID": newRule.UserID,
+		"CreatedAt": newRule.CreatedAt,
+		"Comment": newRule.Comment,
+		"Operation": newRule.Operation,
+	}).Info("Rule" + strconv.Itoa(newRule.ID)  +" Updated")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
