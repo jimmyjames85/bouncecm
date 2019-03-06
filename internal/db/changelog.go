@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"regexp"
-	"time"
+
 	"github.com/pkg/errors"
 
 	// Blank import required for mysql driver
@@ -175,7 +175,7 @@ func (c *Client) CreateChangeLogEntry(lastId int, entry *models.ChangelogEntry) 
 	if err != nil {
 		return errors.Wrap(err, "Invalid Regex")
 	}
-	_, err = c.Conn.Exec("INSERT INTO changelog(rule_id,user_id,comment,created_at,response_code,enhanced_code,regex,priority,description,bounce_action,operation) VALUES(?,?,?,?,?,?,?,?,?,?,?)", lastId, entry.UserID, entry.Comment, int32(time.Now().Unix()), entry.ResponseCode, entry.EnhancedCode, entry.Regex, entry.Priority, entry.Description, entry.BounceAction, entry.Operation)
+	_, err = c.Conn.Exec("INSERT INTO changelog(rule_id,user_id,comment,created_at,response_code,enhanced_code,regex,priority,description,bounce_action,operation) VALUES(?,?,?,?,?,?,?,?,?,?,?)", lastId, entry.UserID, entry.Comment, entry.CreatedAt , entry.ResponseCode, entry.EnhancedCode, entry.Regex, entry.Priority, entry.Description, entry.BounceAction, entry.Operation)
 	if err != nil {
 		return errors.Wrap(err, "CreateChangeLogEntry")
 	}
