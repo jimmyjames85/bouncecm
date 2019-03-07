@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -522,7 +523,7 @@ func (srv *Server) Serve(Port int) {
 	r := chi.NewRouter()
 	m := melody.New()
 	lock := sync.Mutex{}
-	rulesBeingEdited := map[string]bool{}
+	rulesBeingEdited := map[string]time.Time{}
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -578,42 +579,56 @@ func (srv *Server) Serve(Port int) {
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		params := strings.Split(string(msg), ":")
+		if len(params) < 2 {
+			return
+		}
 		lock.Lock()
 		defer lock.Unlock()
 
 		command := params[0]
 		if command == "" {
 			s.Write([]byte("ERROR"))
+			return
 		}
 		bounceRuleID := params[1]
 		if bounceRuleID == "" {
 			s.Write([]byte("ERROR"))
+			return
 		}
 		switch command {
 		case "edit":
-			if rulesBeingEdited[bounceRuleID] {
-				_, exists := s.Get(bounceRuleID)
-				if !exists {
-					s.Write([]byte("INUSE"))
+			if expires, ok := rulesBeingEdited[bounceRuleID]; ok {
+				if time.Now().After(expires) {
+					s.Set(bounceRuleID, true)
+					rulesBeingEdited[bounceRuleID] = time.Now().Add(time.Hour * 2)
+					s.Write([]byte("EDIT"))
+					m.BroadcastOthers([]byte("INUSE"), s)
 				} else {
-					s.Write([]byte("ALREADY"))
+					_, exists := s.Get(bounceRuleID)
+					if !exists {
+						s.Write([]byte("INUSE"))
+					} else {
+						s.Write([]byte("EDIT"))
+					}
 				}
 			} else {
 				s.Set(bounceRuleID, true)
-				rulesBeingEdited[bounceRuleID] = true
+				rulesBeingEdited[bounceRuleID] = time.Now().Add(time.Hour * 2)
 				s.Write([]byte("EDIT"))
 				m.BroadcastOthers([]byte("INUSE"), s)
 			}
 		case "release":
-			if rulesBeingEdited[bounceRuleID] {
-				delete(rulesBeingEdited, bounceRuleID)
-				s.Set(bounceRuleID, false)
-				m.BroadcastOthers([]byte("FREE"), s)
-			}
+			delete(rulesBeingEdited, bounceRuleID)
+			s.Set(bounceRuleID, false)
+			m.BroadcastOthers([]byte("FREE"), s)
 		case "check":
-			if !rulesBeingEdited[bounceRuleID] {
-				log.Println(rulesBeingEdited[bounceRuleID])
+			expires, ok := rulesBeingEdited[bounceRuleID]
+			if !ok {
 				s.Write([]byte("FREE"))
+			} else {
+				if time.Now().After(expires) {
+					s.Write([]byte("FREE"))
+				}
 			}
 		default:
 			s.Write([]byte("ERROR"))
