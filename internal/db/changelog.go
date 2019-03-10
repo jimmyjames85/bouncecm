@@ -5,6 +5,9 @@ import (
 	"regexp"
 	"time"
 	"github.com/pkg/errors"
+	"strconv"
+	"fmt"
+	"strings"
 
 	// Blank import required for mysql driver
 	_ "github.com/go-sql-driver/mysql"
@@ -20,6 +23,101 @@ func (c *Client) GetAllChangelogEntriesLimited( offset int, limit int) ([]models
 	if err != nil {
 		return nil, errors.Wrap(err, "Changelog with limit and offset Query Error")
 	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		br := models.ChangelogEntry{}
+		var description sql.NullString
+		err = rows.Scan(&br.ID, &br.UserID, &br.Comment, &br.CreatedAt, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description, &br.BounceAction , &br.Operation)
+
+
+		if description.Valid {
+			br.Description = description.String
+		}
+
+		if err != nil {
+			return nil, errors.Wrap(err, "Changelog with limit and offset Row Scan")
+		}
+
+		rules = append(rules, br)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, errors.Wrap(err, "Changelog with limit and offset Row Error")
+	}
+
+	return rules, nil
+}
+
+func (c *Client) GetAllChangelogEntriesFiltered( offset int, limit int , filterby string, option string) ([]models.ChangelogEntry, error) {
+	rules := []models.ChangelogEntry{}
+
+	var rows *sql.Rows
+	var err error
+	if filterby == "bounce_action" {
+		rows, err = c.Conn.Query("SELECT * FROM changelog where bounce_action = ?  LIMIT ?,?", option, offset, limit)
+	}
+
+	if filterby == "priority" {
+		priority, err := strconv.Atoi( option)
+		if err != nil {
+			return nil, errors.Wrap(err, "GetAllRulesFiltered Priority needs to be an int")
+		}
+
+		rows, err = c.Conn.Query("SELECT * FROM changelog where priority = ?  LIMIT ?,?",priority, offset, limit)
+	}
+
+	if filterby == "operation" {
+		rows, err = c.Conn.Query("SELECT * FROM changelog where operation = ?  LIMIT ?,?",option, offset, limit)
+	}
+
+	
+	if filterby == "response_code" {
+		response_code, err := strconv.Atoi(option)
+		if err != nil {
+			return nil, errors.Wrap(err, "GetAllRulesFiltered response_code needs to be an int")
+		}
+
+		rows, err = c.Conn.Query("SELECT * FROM changelog where response_code = ?  LIMIT ?,?",response_code, offset, limit)
+	}
+
+		
+	if filterby == "description" {
+		description := "%" + option + "%"
+		rows, err = c.Conn.Query("SELECT * FROM changelog where description LIKE ?  LIMIT ?,?",description, offset, limit)
+	
+	}
+
+	if filterby == "comment" {
+		comment := "%" + option + "%"
+		rows, err = c.Conn.Query("SELECT * FROM changelog where comment LIKE ?  LIMIT ?,?",comment, offset, limit)
+	
+	}
+	if filterby == "created_at" {
+		timeRange := strings.Split(option, " ")
+		fmt.Println(timeRange)
+		rows, err = c.Conn.Query("SELECT * FROM changelog where created_at between ? and ?  LIMIT ?,?",timeRange[0],timeRange[1], offset, limit)
+	
+	}
+
+	if filterby == "user_id" {
+		user_id, err := strconv.Atoi( option)
+		if err != nil {
+			return nil, errors.Wrap(err, "GetAllRulesFiltered user_id needs to be an int")
+		}
+		rows, err = c.Conn.Query("SELECT * FROM changelog where user_id = ?  LIMIT ?,?",user_id, offset, limit)
+	
+	}
+
+
+	if err != nil {
+		return nil, errors.Wrap(err, "Changelog with limit and offset Query Error")
+	}
+	// rows, err := c.Conn.Query("SELECT * FROM changelog order by created_at Desc LIMIT ?,?", offset, limit)
+
+	
 
 	defer rows.Close()
 
