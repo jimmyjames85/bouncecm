@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -12,9 +16,6 @@ import (
 	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
-	"log"
-	"net/http"
-	"strconv"
 )
 
 type TempJsonObject map[string]interface{}
@@ -137,46 +138,42 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-
 // ListRules - wrapper to grab all rules
 func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	var rules []models.BounceRule
 	var err error
 
-
-	limit_param := queryParams["limit"]
-	if len(limit_param) > 1  || len(limit_param) == 1 &&  r.FormValue("limit")== ""   {
+	limitParam := queryParams["limit"]
+	if len(limitParam) > 1 || len(limitParam) == 1 && r.FormValue("limit") == "" {
 		paramError := errors.New("Invalid limit Parameter")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-	offset_param := queryParams["offset"]
-	if len(offset_param) > 1 || len(offset_param) == 1 &&  r.FormValue("offset")== ""   {
+	offsetParam := queryParams["offset"]
+	if len(offsetParam) > 1 || len(offsetParam) == 1 && r.FormValue("offset") == "" {
 		paramError := errors.New("Invalid offset Parameter")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-	filterby_param := queryParams["filterby"]
-	if len(filterby_param) > 1  ||  len(filterby_param) == 1 &&  r.FormValue("filterby")== ""  {
+	filterbyParam := queryParams["filterby"]
+	if len(filterbyParam) > 1 || len(filterbyParam) == 1 && r.FormValue("filterby") == "" {
 		paramError := errors.New("Invalid filterby Parameter")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-	option_param := queryParams["option"]
-	if len(option_param) > 1 ||  len(option_param) == 1 &&  r.FormValue("option")== "" {
+	optionParam := queryParams["option"]
+	if len(optionParam) > 1 || len(optionParam) == 1 && r.FormValue("option") == "" {
 		paramError := errors.New("Invalid option Parameter")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-
 	switch {
-	case len(offset_param) == 1 && len(limit_param) == 1 && len(option_param) == 1 && len(filterby_param) == 1 :
-		fmt.Println("case 1")
+	case len(offsetParam) == 1 && len(limitParam) == 1 && len(optionParam) == 1 && len(filterbyParam) == 1:
 		option := r.FormValue("option")
 		filterby := r.FormValue("filterby")
 
@@ -209,9 +206,7 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-
-	case len(offset_param) == 1 && len(limit_param) == 1 && len(option_param) == 0 && len(filterby_param) == 0 :
-		fmt.Println("case 2")
+	case len(offsetParam) == 1 && len(limitParam) == 1 && len(optionParam) == 0 && len(filterbyParam) == 0:
 		limit, err := strconv.Atoi(r.FormValue("limit"))
 
 		if err != nil {
@@ -235,8 +230,7 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-	case len(offset_param) == 0 && len(limit_param) == 0 && len(option_param) == 0 && len(filterby_param) == 0 :
-		fmt.Println("case 3")
+	case len(offsetParam) == 0 && len(limitParam) == 0 && len(optionParam) == 0 && len(filterbyParam) == 0:
 		rules, err = srv.DBClient.GetAllRules()
 		if err != nil {
 			log.Println(err)
@@ -245,14 +239,11 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 		}
 
 	default:
-		fmt.Println("case 4")
 		paramError := errors.New("Parameter Mismatch: limit <-> offset || option <-> filterby")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
-	
+
 	}
-
-
 
 	data, err := json.Marshal(&rules)
 
@@ -408,68 +399,59 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 
 		queryParams := r.URL.Query()
 
-
-		limit_param := queryParams["limit"]
-		if len(limit_param) > 1  || len(limit_param) == 1 &&  r.FormValue("limit")== ""   {
+		limitParam := queryParams["limit"]
+		if len(limitParam) > 1 || len(limitParam) == 1 && r.FormValue("limit") == "" {
 			paramError := errors.New("Invalid limit Parameter")
 			http.Error(w, paramError.Error(), http.StatusBadRequest)
 			return
 		}
-	
-		offset_param := queryParams["offset"]
-		if len(offset_param) > 1 || len(offset_param) == 1 &&  r.FormValue("offset")== ""   {
+
+		offsetParam := queryParams["offset"]
+		if len(offsetParam) > 1 || len(offsetParam) == 1 && r.FormValue("offset") == "" {
 			paramError := errors.New("Invalid offset Parameter")
 			http.Error(w, paramError.Error(), http.StatusBadRequest)
 			return
 		}
-	
 
 		switch {
-		case len(offset_param) == 1 && len(limit_param) == 1 :
-			fmt.Println("case 2")
+		case len(offsetParam) == 1 && len(limitParam) == 1:
 			limit, err := strconv.Atoi(r.FormValue("limit"))
-	
+
 			if err != nil {
 				log.Println(err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-	
+
 			offset, err := strconv.Atoi(r.FormValue("offset"))
-	
+
 			if err != nil {
 				log.Println(err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-	
+
 			changelog, err = srv.DBClient.GetChangeLogByIdLimited(bounce_id, offset, limit)
 			if err != nil {
 				log.Println(err)
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
-	
-		case len(offset_param) == 0 && len(limit_param) == 0 :
-			fmt.Println("case 3")
+
+		case len(offsetParam) == 0 && len(limitParam) == 0:
 			changelog, err = srv.DBClient.GetChangeLogById(bounce_id)
 			if err != nil {
 				log.Println(err)
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
-	
+
 		default:
-			fmt.Println("case 4")
 			paramError := errors.New("Parameter Mismatch: limit <-> offset")
 			http.Error(w, paramError.Error(), http.StatusBadRequest)
 			return
-		
+
 		}
-
-	
-
-
 
 		ctx := context.WithValue(r.Context(), "changelog", changelog)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -505,40 +487,36 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 	var changelog []models.ChangelogEntry
 	var err error
 
-
-	
-	limit_param := queryParams["limit"]
-	if len(limit_param) > 1  || len(limit_param) == 1 &&  r.FormValue("limit")== ""   {
+	limitParam := queryParams["limit"]
+	if len(limitParam) > 1 || len(limitParam) == 1 && r.FormValue("limit") == "" {
 		paramError := errors.New("Invalid limit Parameter")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-	offset_param := queryParams["offset"]
-	if len(offset_param) > 1 || len(offset_param) == 1 &&  r.FormValue("offset")== ""   {
+	offsetParam := queryParams["offset"]
+	if len(offsetParam) > 1 || len(offsetParam) == 1 && r.FormValue("offset") == "" {
 		paramError := errors.New("Invalid offset Parameter")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-	filterby_param := queryParams["filterby"]
-	if len(filterby_param) > 1  ||  len(filterby_param) == 1 &&  r.FormValue("filterby")== ""  {
+	filterbyParam := queryParams["filterby"]
+	if len(filterbyParam) > 1 || len(filterbyParam) == 1 && r.FormValue("filterby") == "" {
 		paramError := errors.New("Invalid filterby Parameter")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-	option_param := queryParams["option"]
-	if len(option_param) > 1 ||  len(option_param) == 1 &&  r.FormValue("option")== "" {
+	optionParam := queryParams["option"]
+	if len(optionParam) > 1 || len(optionParam) == 1 && r.FormValue("option") == "" {
 		paramError := errors.New("Invalid option Parameter")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-
 	switch {
-	case len(offset_param) == 1 && len(limit_param) == 1 && len(option_param) == 1 && len(filterby_param) == 1 :
-		fmt.Println("case 1")
+	case len(offsetParam) == 1 && len(limitParam) == 1 && len(optionParam) == 1 && len(filterbyParam) == 1:
 		option := r.FormValue("option")
 		filterby := r.FormValue("filterby")
 
@@ -571,9 +549,7 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-
-	case len(offset_param) == 1 && len(limit_param) == 1 && len(option_param) == 0 && len(filterby_param) == 0 :
-		fmt.Println("case 2")
+	case len(offsetParam) == 1 && len(limitParam) == 1 && len(optionParam) == 0 && len(filterbyParam) == 0:
 		limit, err := strconv.Atoi(r.FormValue("limit"))
 
 		if err != nil {
@@ -597,8 +573,7 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-	case len(offset_param) == 0 && len(limit_param) == 0 && len(option_param) == 0 && len(filterby_param) == 0 :
-		fmt.Println("case 3")
+	case len(offsetParam) == 0 && len(limitParam) == 0 && len(optionParam) == 0 && len(filterbyParam) == 0:
 		changelog, err = srv.DBClient.GetAllChangelogEntries()
 		if err != nil {
 			log.Println(err)
@@ -607,13 +582,11 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 		}
 
 	default:
-		fmt.Println("case 4")
 		paramError := errors.New("Parameter Mismatch: limit <-> offset || option <-> filterby")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
-	
-	}
 
+	}
 
 	data, err := json.Marshal(changelog)
 
