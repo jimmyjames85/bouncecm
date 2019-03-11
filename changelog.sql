@@ -3,6 +3,7 @@ USE drop_rules;
 DROP TABLE IF EXISTS `changelog`;
 
 CREATE TABLE IF NOT EXISTS `changelog` (
+  `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
   `rule_id` smallint(5) unsigned NOT NULL,
   `user_id` smallint(5) unsigned NOT NULL,
   `comment` varchar(255) NOT NULL,
@@ -13,8 +14,8 @@ CREATE TABLE IF NOT EXISTS `changelog` (
   `priority` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `description` varchar(255) DEFAULT NULL,
   `bounce_action` varchar(255) NOT NULL,
-  `operation` ENUM('Create', 'Delete', 'Update') NOT NULL,  
-  PRIMARY KEY (`created_at`)
+  `operation` ENUM('Create', 'Delete', 'Update') NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 
