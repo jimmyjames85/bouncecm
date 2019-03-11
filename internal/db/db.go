@@ -2,17 +2,18 @@ package db
 
 import (
 	"database/sql"
-	"github.com/jimmyjames85/bouncecm/internal/config"
 	"fmt"
 	"log"
+
 	"github.com/go-sql-driver/mysql"
+	"github.com/jimmyjames85/bouncecm/internal/config"
 )
 
 type Client struct {
 	Conn *sql.DB
 }
 
-// NewDB ... 
+// NewDB ...
 func NewDB(c config.Configuration) (*Client, error) {
 	dbConf := &mysql.Config{
 		User:                 c.DBUser,
@@ -22,7 +23,7 @@ func NewDB(c config.Configuration) (*Client, error) {
 		ReadTimeout:          c.DBReadTimeout,
 		WriteTimeout:         c.DBWriteTimeout,
 		AllowNativePasswords: true,
-		DBName:            	  c.DBName,
+		DBName:               c.DBName,
 	}
 
 	log.Println(dbConf.FormatDSN())

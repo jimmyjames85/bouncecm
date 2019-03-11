@@ -12,6 +12,7 @@ type BounceRule struct {
 }
 
 type ChangelogEntry struct {
+	ChangelogID int `json:"changelog_id"`
 	BounceRule
 	UserID    int    `json:"user_id"`
 	CreatedAt int    `json:"created_at"`
