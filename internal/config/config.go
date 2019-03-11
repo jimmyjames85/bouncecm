@@ -2,6 +2,7 @@ package config
 
 import (
 	"time"
+
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -17,7 +18,7 @@ type Configuration struct {
 	DBName         string        `envconfig:"DB_NAME" required:"false" default:"drop_rules"`
 	DBReadTimeout  time.Duration `envconfig:"DB_READ_TIMEOUT" required:"false" default:"10s"`
 	DBWriteTimeout time.Duration `envconfig:"DB_WRITE_TIMEOUT" required:"false" default:"10s"`
-	APIPort         int           `envconfig:"API_PORT" required:"false" default:"3000"`
+	APIPort        int           `envconfig:"API_PORT" required:"false" default:"3000"`
 }
 
 // LoadConfig loads environment variables with the prefix

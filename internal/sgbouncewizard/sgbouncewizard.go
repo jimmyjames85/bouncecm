@@ -7,6 +7,9 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -16,6 +19,7 @@ import (
 	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/olahol/melody.v1"
 )
 
 type TempJsonObject map[string]interface{}
@@ -627,6 +631,9 @@ func (srv *Server) createChangeLogEntryRoute(w http.ResponseWriter, r *http.Requ
 
 func (srv *Server) Serve(Port int) {
 	r := chi.NewRouter()
+	m := melody.New()
+	lock := sync.Mutex{}
+	rulesBeingEdited := map[string]time.Time{}
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -672,6 +679,70 @@ func (srv *Server) Serve(Port int) {
 			r.Delete("/", srv.DeleteRuleRoute)
 			r.Put("/", srv.UpdateRuleRoute)
 		})
+	})
+
+	r.Route("/ws", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			m.HandleRequest(w, r)
+		})
+	})
+
+	m.HandleMessage(func(s *melody.Session, msg []byte) {
+		params := strings.Split(string(msg), ":")
+		if len(params) < 2 {
+			return
+		}
+		lock.Lock()
+		defer lock.Unlock()
+
+		command := params[0]
+		if command == "" {
+			s.Write([]byte("ERROR"))
+			return
+		}
+		bounceRuleID := params[1]
+		if bounceRuleID == "" {
+			s.Write([]byte("ERROR"))
+			return
+		}
+		switch command {
+		case "edit":
+			if expires, ok := rulesBeingEdited[bounceRuleID]; ok {
+				if time.Now().After(expires) {
+					s.Set(bounceRuleID, true)
+					rulesBeingEdited[bounceRuleID] = time.Now().Add(time.Hour * 2)
+					s.Write([]byte("EDIT"))
+					m.BroadcastOthers([]byte("INUSE"), s)
+				} else {
+					_, exists := s.Get(bounceRuleID)
+					if !exists {
+						s.Write([]byte("INUSE"))
+					} else {
+						s.Write([]byte("EDIT"))
+					}
+				}
+			} else {
+				s.Set(bounceRuleID, true)
+				rulesBeingEdited[bounceRuleID] = time.Now().Add(time.Hour * 2)
+				s.Write([]byte("EDIT"))
+				m.BroadcastOthers([]byte("INUSE"), s)
+			}
+		case "release":
+			delete(rulesBeingEdited, bounceRuleID)
+			s.Set(bounceRuleID, false)
+			m.BroadcastOthers([]byte("FREE"), s)
+		case "check":
+			expires, ok := rulesBeingEdited[bounceRuleID]
+			if !ok {
+				s.Write([]byte("FREE"))
+			} else {
+				if time.Now().After(expires) {
+					s.Write([]byte("FREE"))
+				}
+			}
+		default:
+			s.Write([]byte("ERROR"))
+		}
 	})
 
 	port := fmt.Sprintf(":%d", Port)
