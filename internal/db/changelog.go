@@ -115,27 +115,24 @@ func (c *Client) GetAllChangelogEntriesFiltered( offset int, limit int , filterb
 	if err != nil {
 		return nil, errors.Wrap(err, "Changelog with limit and offset Query Error")
 	}
-	// rows, err := c.Conn.Query("SELECT * FROM changelog order by created_at Desc LIMIT ?,?", offset, limit)
 
-	
 
 	defer rows.Close()
 
 	for rows.Next() {
-		br := models.ChangelogEntry{}
+		cl := models.ChangelogEntry{}
 		var description sql.NullString
-		err = rows.Scan(&br.ID, &br.UserID, &br.Comment, &br.CreatedAt, &br.ResponseCode, &br.EnhancedCode, &br.Regex, &br.Priority, &description, &br.BounceAction , &br.Operation)
-
+		err = rows.Scan(&cl.ChangelogID, &cl.ID, &cl.UserID, &cl.Comment, &cl.CreatedAt, &cl.ResponseCode, &cl.EnhancedCode, &cl.Regex, &cl.Priority, &description, &cl.BounceAction, &cl.Operation)
 
 		if description.Valid {
-			br.Description = description.String
+			cl.Description = description.String
 		}
 
 		if err != nil {
 			return nil, errors.Wrap(err, "Changelog with limit and offset Row Scan")
 		}
 
-		rules = append(rules, br)
+		rules = append(rules, cl)
 	}
 
 	err = rows.Err()
