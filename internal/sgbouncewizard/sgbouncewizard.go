@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -14,8 +15,9 @@ import (
 	"github.com/jimmyjames85/bouncecm/internal/db"
 	"github.com/jimmyjames85/bouncecm/internal/models"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	log "github.com/sirupsen/logrus")
+)
 
 type TempJsonObject map[string]interface{}
 
@@ -38,7 +40,7 @@ func NewServer(c config.Configuration) (*Server, error) {
 		return nil, errors.Wrap(err, "Ping Failed")
 	}
 
-	log.WithFields(log.Fields{}).Info("Server was Created")
+	log.Info("Server was Created")
 
 	return &Server{DBClient: client}, nil
 }
@@ -47,7 +49,6 @@ func (srv *Server) RuleContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rule *models.BounceRule
 
-	
 		bouncd_id, err := strconv.Atoi(chi.URLParam(r, "bounce_id"))
 
 		if err != nil {
@@ -144,15 +145,13 @@ func (srv *Server) CheckUser(w http.ResponseWriter, r *http.Request) {
 func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 
-
 	limit_param := queryParams["limit"]
 
-	if len(limit_param) > 1{
+	if len(limit_param) > 1 {
 		paramError := errors.New("Invalid limit Parameter: does not exist or to many")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
-
 
 	offset_param := queryParams["offset"]
 	if len(offset_param) > 1 {
@@ -161,12 +160,10 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	var rules []models.BounceRule
 	var err error
-	
 
-	if (len(offset_param) == 0 &&  len(limit_param) == 0){
+	if len(offset_param) == 0 && len(limit_param) == 0 {
 		rules, err = srv.DBClient.GetAllRules()
 		if err != nil {
 			log.Println(err)
@@ -181,26 +178,24 @@ func (srv *Server) GetAllRulesRoute(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-	
+
 		Offset, err := strconv.Atoi(r.FormValue("offset"))
-	
+
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		rules, err = srv.DBClient.GetAllRulesLimited(Offset,limit)
+		rules, err = srv.DBClient.GetAllRulesLimited(Offset, limit)
 
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-	
+
 	}
-
-
 
 	data, err := json.Marshal(&rules)
 
@@ -268,12 +263,12 @@ func (srv *Server) DeleteRuleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.WithFields(log.Fields{
-		"UserID": toDelete.UserID,
+		"UserID":    toDelete.UserID,
 		"CreatedAt": toDelete.CreatedAt,
-		"Comment": toDelete.Comment,
+		"Comment":   toDelete.Comment,
 		"Operation": toDelete.Operation,
-	}).Info("Rule " + strconv.Itoa(toDelete.ID)  +" Deleted")
-
+		"DeletedID": toDelete.ID,
+	}).Info("Rule " + strconv.Itoa(toDelete.ID) + " Deleted")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -316,11 +311,12 @@ func (srv *Server) CreateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.WithFields(log.Fields{
-		"UserID": rule.UserID,
+		"UserID":    rule.UserID,
 		"CreatedAt": rule.CreatedAt,
-		"Comment": rule.Comment,
+		"Comment":   rule.Comment,
 		"Operation": rule.Operation,
-	}).Info("Rule " + strconv.Itoa( LastInsertedID)  +" Created")
+		"CreatedID": LastInsertedID,
+	}).Info("Rule " + strconv.Itoa(LastInsertedID) + " Created")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -357,11 +353,12 @@ func (srv *Server) UpdateRuleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.WithFields(log.Fields{
-		"UserID": newRule.UserID,
+		"UserID":    newRule.UserID,
 		"CreatedAt": newRule.CreatedAt,
-		"Comment": newRule.Comment,
+		"Comment":   newRule.Comment,
 		"Operation": newRule.Operation,
-	}).Info("Rule" + strconv.Itoa(newRule.ID)  +" Updated")
+		"NewRuleID": newRule.ID,
+	}).Info("Rule" + strconv.Itoa(newRule.ID) + " Updated")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -371,7 +368,7 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var changelog []models.ChangelogEntry
 
-		bounce_id, err := strconv.Atoi( chi.URLParam(r, "bounce_id"))
+		bounce_id, err := strconv.Atoi(chi.URLParam(r, "bounce_id"))
 
 		if err != nil {
 			log.Println(err)
@@ -382,21 +379,20 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 		queryParams := r.URL.Query()
 
 		limit_param := queryParams["limit"]
-		if len(limit_param) > 1{
+		if len(limit_param) > 1 {
 			paramError := errors.New("Invalid limit Parameter: does not exist or to many")
 			http.Error(w, paramError.Error(), http.StatusBadRequest)
 			return
 		}
 
-	
 		offset_param := queryParams["offset"]
-		if  len(offset_param) > 1 {
+		if len(offset_param) > 1 {
 			paramError := errors.New("Invalid offset Parameter: does not exist or to many")
 			http.Error(w, paramError.Error(), http.StatusBadRequest)
 			return
 		}
 
-		if (len(offset_param) == 0 &&  len(limit_param) == 0){
+		if len(offset_param) == 0 && len(limit_param) == 0 {
 			changelog, err = srv.DBClient.GetChangeLogById(bounce_id)
 			if err != nil {
 				log.Println(err)
@@ -411,25 +407,23 @@ func (srv *Server) ChangelogContext(next http.Handler) http.Handler {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-	
-			offset, err := strconv.Atoi(r.FormValue("offset"))
-	
-			if err != nil {
-				log.Println(err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-	
-			changelog, err = srv.DBClient.GetChangeLogByIdLimited(bounce_id, offset,  limit)
-		
-			if err != nil {
-				log.Println(err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-		} 
-	
 
+			offset, err := strconv.Atoi(r.FormValue("offset"))
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			changelog, err = srv.DBClient.GetChangeLogByIdLimited(bounce_id, offset, limit)
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+		}
 
 		ctx := context.WithValue(r.Context(), "changelog", changelog)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -464,8 +458,7 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 	queryParams := r.URL.Query()
 	limit_param := queryParams["limit"]
 
-
-	if  len(limit_param) > 1{
+	if len(limit_param) > 1 {
 		paramError := errors.New("Invalid limit Parameter: Too many")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
@@ -473,17 +466,16 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 
 	offset_param := queryParams["offset"]
 
-	if  len(offset_param) > 1 {
+	if len(offset_param) > 1 {
 		paramError := errors.New("Invalid offset Parameter: Too many")
 		http.Error(w, paramError.Error(), http.StatusBadRequest)
 		return
 	}
 
-
 	var changelog []models.ChangelogEntry
 	var err error
 
-	if (len(offset_param) == 0 &&  len(limit_param) == 0){
+	if len(offset_param) == 0 && len(limit_param) == 0 {
 
 		changelog, err = srv.DBClient.GetAllChangelogEntries()
 		if err != nil {
@@ -499,24 +491,22 @@ func (srv *Server) GetAllChangelogEntries(w http.ResponseWriter, r *http.Request
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-	
+
 		Offset, err := strconv.Atoi(r.FormValue("offset"))
-	
+
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-	
 
-		changelog, err = srv.DBClient.GetAllChangelogEntriesLimited(Offset,limit)
+		changelog, err = srv.DBClient.GetAllChangelogEntriesLimited(Offset, limit)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
 	}
-
 
 	data, err := json.Marshal(changelog)
 
