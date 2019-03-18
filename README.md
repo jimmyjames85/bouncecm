@@ -62,11 +62,11 @@ Delete:
 curl -X DELETE -H "Content-Type: application/json" -d '{"id":354, "user_id":1, "created_at":999999, "comment":"DEletetesting",  "response_code":123, "enhanced_code":"1.2.4", "regex":"testing", "priority":123, "description":"This is for testing", "bounce_action":"PUTTESTING"}' localhost:3000/bounce_rules/354
 ```
 
-```
-Note: /change_logs & /change_logs/{id} require query parameters limit and offset 
+````
+Note: /change_logs & /change_logs/{id} require query parameters limit and offset
     example:  /change_logs/?limit=10&offset=0 & /change_logs/{id}?limit=10&offset=0
-    
-    /bounce_rules  require query parameters limit and offset 
+
+    /bounce_rules  require query parameters limit and offset
     example:  /bounce_rules/?limit=10&offset=0 ```
 
 ## Testing
@@ -114,3 +114,47 @@ This will check for MySQL commands working with the bounce_rule schema
 ### Alternatively, you can run the following command to just test all of them once you enter the container
 
 `go test -v src/github.com/jimmyjames85/bouncecm/internal/integration/*.go`
+
+````
+
+### Socket
+
+Concurrent users are implemented through a simple socketed connection
+Library used for socket implementation: <https://https://github.com/olahol/melody/>
+
+The server uses a in-memory `map[string]Time` to keep track of rules being edited
+
+The messages emitted by the client should follow the pattern of:
+`<COMMAND>:<BOUNCE RULE ID>`
+
+As of right now, there are only three commands that the backend socket takes:
+
+- edit
+- release
+- check
+
+#### edit
+
+`edit:504`
+
+Returns `EDIT`, `INUSE`
+
+Allocates the timeout for the specified bounce rule in the internal data structure.
+Returns `EDIT` if successful and `INUSE` if user is already editing.
+
+#### release
+
+`release:504`
+
+Returns `FREE`
+
+Removes the entry for the specified bounce rule in the map and broadcasts `FREE` to all other connected sessions to update their UIs
+
+#### check
+
+`check:504`
+
+Returns `FREE`
+
+Interface for checking whether or not a certain bounce rule is being edited by another
+user. Only returns `FREE` if applicable (No edits / Timeout)
